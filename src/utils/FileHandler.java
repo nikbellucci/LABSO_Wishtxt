@@ -1,19 +1,17 @@
+package utils;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Scanner;
 
-public class ServerMethods {
+public class FileHandler {
 
     String path;
 
 
-    public ServerMethods(String path) {
+    public FileHandler(String path) {
         this.path = path;
     }
-
-
-
 
     public String renameFile(String oldName, String newName){
         File file = new File(path+"\\" +oldName);
@@ -55,10 +53,6 @@ public class ServerMethods {
             return "File not found";
         }
     }
-
-
-
-
 
     public String newFile(String fileName) {
         try {
