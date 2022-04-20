@@ -1,11 +1,16 @@
 package client;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.util.Scanner;
+
 public class Main {
     public static void main (String args[]) {
 
         //Prendi in input l'indirizzo e la porta a cui connettersi
         if (args.length < 2) {
-            System.err.println("Usage: java PCClient <host> <port>");
+            System.err.println("Usage: java Client <host> <port>");
             return;
         }
         String host = args[0];
