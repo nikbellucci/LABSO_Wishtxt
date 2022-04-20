@@ -17,7 +17,7 @@ public class Main {
         int port = Integer.parseInt(args[1]);
 
         try {
-            //Connettiti a host:port 
+            //Connettiti a host:port
             Socket s = new Socket(host, port);
             System.out.println("Connected");
 
@@ -34,8 +34,10 @@ public class Main {
                     //Se l'utente chiede di uscire, termina il ciclo while
                     break;
                 }
-                String response = fromServer.nextLine(); //Leggi la risposta del server...
-                System.out.println(response); //... e stampala sul terminale
+                while (fromServer.hasNextLine()) {
+                    String response = fromServer.nextLine(); //Leggi la risposta del server...
+                    System.out.println(response); //... e stampala sul terminale
+                }
             }
 
             //Prima di arrestare il client, chiudi la connessione e lo scanner
@@ -47,6 +49,6 @@ public class Main {
             System.err.println("Error during an I/O operation:");
             e.printStackTrace();
         }
-        
+
     }
 }

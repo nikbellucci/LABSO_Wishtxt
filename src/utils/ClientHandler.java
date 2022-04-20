@@ -6,7 +6,7 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class ClientHandler implements Runnable {
-    
+
     private Socket s;
 
 
@@ -17,32 +17,34 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
-            Scanner fromClient = new Scanner(s.getInputStream());
-            PrintWriter toClient = new PrintWriter(s.getOutputStream(), true);
+            FileHandler fileHandler = new FileHandler(/*Insert path here*/"");
+            PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+            Scanner in = new Scanner(s.getInputStream());
+            while (in.hasNextLine()) {
+                String input = in.nextLine(),requestType=null;
+                String[] spitArg=null,splitRequest=null;
 
-            while (true) {
-                String request = fromClient.nextLine();
-                String[] splitRequest = request.split(":", 2);
-                String requestType = splitRequest[0];
-                String requestArg = splitRequest.length > 1 ? splitRequest[1] : "";
+                try {
+                    splitRequest = input.split(":", 2);
+                    requestType = splitRequest[0];
+                    spitArg = splitRequest[1].split(";", 2);
+                }catch (ArrayIndexOutOfBoundsException e){}
 
-                if (requestType.equals("read")) {
-                    System.out.println("read");
-                } else if (requestType.equals("write")) {
+                if (requestType.equalsIgnoreCase("read")) 
+                    out.println(fileHandler.readFile(splitRequest[1]));
+                else if (requestType.equalsIgnoreCase("new"))  
+                    out.println(fileHandler.newFile(splitRequest[1]));
+                else if (requestType.equalsIgnoreCase("rename"))  
+                    out.println(fileHandler.renameFile(spitArg[0],spitArg[1]));
+                else if (requestType.equalsIgnoreCase("write"))
                     System.out.println("write");
-                } else if (requestType.equals("quit")) {
-                    break;
-                } else {
-                    System.out.println("Unknown command");
-                }
+                else if (requestType.equalsIgnoreCase("quit"))  break;
+                else System.out.println("Unknown command");
             }
 
-            s.close();
-            toClient.println("Client terminated");
+            out.close();
+            in.close();
+        }catch (IOException e) {e.printStackTrace();}
 
-        } catch (IOException e) {
-            System.err.println("Error during I/O operation:");
-            e.printStackTrace();
-        }
     }
 }
