@@ -1,7 +1,6 @@
 package client;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
 
@@ -21,31 +20,25 @@ public class Main {
             Socket s = new Socket(host, port);
             System.out.println("Connected");
 
-            Scanner fromServer = new Scanner(s.getInputStream()); //Canale di ricezione dal server
-            PrintWriter toServer = new PrintWriter(s.getOutputStream(), true); //Canale di invio verso il server
+            Scanner scan = new Scanner(System.in);
+            ObjectOutputStream toServer = new ObjectOutputStream(s.getOutputStream());
+            ObjectInputStream fromServer = new ObjectInputStream(s.getInputStream());
 
-            Scanner userInput = new Scanner(System.in); //Lettura dell'input da terminale
+           while(scan.hasNext()) {
+                String msg = scan.nextLine();
+                toServer.writeObject(msg);
 
-            //Ciclo di vita del client
-            while (true) {
-                String request = userInput.nextLine(); //Leggi la richiesta dell'utente...
-                toServer.println(request); //... e inoltrala al server
-                if (request.equals("quit")) {
-                    //Se l'utente chiede di uscire, termina il ciclo while
-                    break;
-                }
-                while (fromServer.hasNextLine()) {
-                    String response = fromServer.nextLine(); //Leggi la risposta del server...
-                    System.out.println(response); //... e stampala sul terminale
-                }
+                String message = (String) fromServer.readObject();
+                System.out.println(message);
+
+                if(scan.equals("quit:")) break;
+
             }
-
-            //Prima di arrestare il client, chiudi la connessione e lo scanner
-            s.close();
-            userInput.close();
+            fromServer.close();
+            toServer.close();
+            scan.close();
             System.out.println("Closed");
-
-        } catch (IOException e) {
+        } catch (IOException | ClassNotFoundException e) {
             System.err.println("Error during an I/O operation:");
             e.printStackTrace();
         }
