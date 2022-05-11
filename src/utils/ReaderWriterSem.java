@@ -20,6 +20,8 @@ public class ReaderWriterSem {
             return readerCount;
         }
     }
+
+
     public int endRead() {
         synchronized(this) {
             --readerCount;
@@ -31,6 +33,8 @@ public class ReaderWriterSem {
             return readerCount;
         }
     }
+
+
     public void startWrite() {
         synchronized(this) {
             while (dbReading == true || dbWriting == true) {
@@ -42,12 +46,16 @@ public class ReaderWriterSem {
             dbWriting = true;
         }
     }
+
+
     public void endWrite() {
         synchronized (this) {
             dbWriting = false;
             notifyAll();
         }
     }
+
+    
     //TODO: Remove this getter methods
     public boolean isDbReading() {
         return dbReading;

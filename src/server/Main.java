@@ -1,8 +1,13 @@
 package server;
+
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
+
+import utils.ClientHandler;
+import utils.ReaderWriterSem;
 
 //TODO: import package utils for ReaderWriterSem and ClientHandler
 
@@ -21,9 +26,11 @@ public class Main {
 
             //Ciclo di vita del thread principale del server
             while (true) {
+                
                 System.out.println("Listening...");
                 Socket s = listener.accept(); //Connettiti a un client
                 System.out.println("Connected");
+                //ciao
                 //Delega la gestione della nuova connessione a un thread ClientHandler dedicato
                 Thread clientHandlerThread = new Thread(new ClientHandler(s, critSecHndl));
                 clientHandlerThread.start();

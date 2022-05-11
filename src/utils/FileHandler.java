@@ -2,14 +2,14 @@ package utils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Scanner;
 
 public class FileHandler {
 
-    String path;
-
+    private String path;
 
     public FileHandler(String path) {
         this.path = path;
@@ -18,18 +18,18 @@ public class FileHandler {
     public String getFilesName() {
         File curDir = new File(path);
         File[] filesList = curDir.listFiles();
-        String fileStr ="";
-        for(File f : filesList) {
-            if (f.isFile()) {
-                fileStr += f.getName() + "\n";
-            }
-        }
-        return fileStr.substring(0, fileStr.length() - 1);
+        String fileStr = "";
 
+        for(File f : filesList) {
+                if (f.isFile()) {
+                    fileStr += f.getName() + "\n";
+                }
+        }
+        return fileStr;
     }
     public String renameFile(String oldName, String newName){
-        File file = new File(path+"\\" +oldName);
-        File renamedFile = new File(path+"\\" +newName);
+        File file = new File(path+ File.separator +oldName );
+        File renamedFile = new File(path+ File.separator +newName);
         boolean rename = file.renameTo(renamedFile); //if true the file is successfully renamed
         if(rename == true)
             return "Rename successful";
@@ -40,7 +40,7 @@ public class FileHandler {
 
     }
     public String deleteFile(String fileName){
-        File f = new File(path + "\\" + fileName);
+        File f = new File(path +  File.separator + fileName);
         if(f.delete())
             return "File deleted";
         else{
@@ -51,7 +51,7 @@ public class FileHandler {
     }
     public String readFile(String fileName){
         try {
-            File obj = new File(path+"\\"+fileName);
+            File obj = new File(path+ File.separator+fileName);
             Scanner myReader = new Scanner(obj);
             //if code passes the scanner initialization w/out exceptions, we know that the file exists. We are ready to enter into the critical section
 
@@ -60,7 +60,8 @@ public class FileHandler {
                 data = data.concat(myReader.nextLine()+"\n");
             }
             myReader.close();
-            return data.substring(0, data.length() - 1); //this substring removes the \n that was previously concatenated
+            return data;
+//            return data.substring(0, data.length() - 1); //this substring removes the \n that was previously concatenated
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -68,7 +69,7 @@ public class FileHandler {
         }
     }
     public String newFile(String fileName) throws IOException{
-        File obj = new File(path + "\\" + fileName);
+        File obj = new File(path +  File.separator+ fileName);
         if (obj.createNewFile()) {
             return "File created: " + fileName;
         } else {
@@ -76,14 +77,14 @@ public class FileHandler {
         }
     }
     public void writeLine(String fileName, String input) throws IOException {
-        FileWriter fw = new FileWriter(path+ "\\" + fileName,true);
-        fw.write("\n"+input);
+        FileWriter fw = new FileWriter(path+  File.separator + fileName + File.separator, true);
+        fw.write(input);
         fw.close();
     }
 
     //TODO: understand this method, i copy-pasted it from th internet
     public void backSpace(String fileName) throws IOException {
-        RandomAccessFile f = new RandomAccessFile(path+"\\"+fileName, "rw");
+        RandomAccessFile f = new RandomAccessFile(path+ File.separator+fileName , "rw");
         long length = f.length() - 1;
         byte b;
         do {
