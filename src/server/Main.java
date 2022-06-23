@@ -1,6 +1,6 @@
 package server;
 
-import java.io.File;
+import utils.*;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -24,13 +24,12 @@ public class Main {
         try {
             ServerSocket listener = new ServerSocket(port);
 
-            //Ciclo di vita del thread principale del server
+            // Listening for new connections.
             while (true) {
                 
                 System.out.println("Listening...");
                 Socket s = listener.accept(); //Connettiti a un client
                 System.out.println("Connected");
-                //ciao
                 //Delega la gestione della nuova connessione a un thread ClientHandler dedicato
                 Thread clientHandlerThread = new Thread(new ClientHandler(s, critSecHndl));
                 clientHandlerThread.start();
@@ -40,7 +39,6 @@ public class Main {
             }
 
             //L'interruzione del server e la conseguente chiusura del ServerSocket non è implementata per semplicità
-            //listener.close();
 
         } catch (IOException e) {
             System.err.println("Error during I/O operation:");

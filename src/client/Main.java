@@ -24,6 +24,7 @@ public class Main {
             ObjectOutputStream toServer = new ObjectOutputStream(s.getOutputStream());
             ObjectInputStream fromServer = new ObjectInputStream(s.getInputStream());
 
+           // A while loop that reads the input from the user and sends it to the server.
            while(scan.hasNext()) {
                 String msg = scan.nextLine();
                 toServer.writeObject(msg);
