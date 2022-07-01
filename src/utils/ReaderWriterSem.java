@@ -77,14 +77,5 @@ public class ReaderWriterSem {
         }
     }
 
-    
-    public boolean isDbReading() {
-        return dbReading;
-    }
-    public boolean isDbWriting() {
-        return dbWriting;
-    }
-    public int getReaderCount() {
-        return readerCount;
-    }
+
 }
