@@ -9,7 +9,6 @@ import java.util.HashMap;
 import utils.ClientHandler;
 import utils.ReaderWriterSem;
 
-//TODO: import package utils for ReaderWriterSem and ClientHandler
 
 
 public class Main {

@@ -51,7 +51,7 @@ public class FileHandler {
             return "Rename successful";
         else {
             if (renamedFile.exists()) return "Filename already exists";
-            else return "Internal error"; // TODO: there might be other possible reasons for an error occurring, we could need some more specific error messages
+            else return "Internal error"; 
         }
 
     }
@@ -92,8 +92,6 @@ public class FileHandler {
             }
             myReader.close();
             return data;
-            //return data.substring(0, data.length() - 1); 
-            //this substring removes the \n that was previously concatenated
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -130,8 +128,9 @@ public class FileHandler {
     }
 
     /**
-     * It reads the file, then truncates the file at that
-     * point
+     * 
+     * It reads each charachter backwards until it finds the ASCII value 10 (= new line), at that point it sets a new lenght for the file, truncating the last line.
+     * 
      * 
      * @param fileName The name of the file you want to delete the last line from.
      */

@@ -9,6 +9,7 @@ import java.util.HashMap;
 
 public class ClientHandler implements Runnable {
     private Socket s;
+    // This hashmap links a semaphore with each used file by the clients
     private HashMap<String, ReaderWriterSem> criticHandle = new HashMap<>(); // string nomeFile
     private String[] spitArg=null,splitRequest=null;
     private String path = System.getProperty("user.dir") + File.separator + "data";
@@ -18,10 +19,7 @@ public class ClientHandler implements Runnable {
         this.criticHandle = criticHandle;
     }
 
-    /*
-     * this method is called from the client thread.
-     * 
-     */
+    //This method communicates w/ the client the thread was assigned to. It is an infinte loop until the command "quit:" is called, which returns a false in line 44
     @Override
     public void run() {
         try {
@@ -35,7 +33,7 @@ public class ClientHandler implements Runnable {
                     toClient.writeObject("Invalid command! Syntax: [command]:[argument1];[argument2]");
                     continue;
                 }
-                // fixInputStream(message);
+                
                 try {
                     splitRequest = message.split(":", 2);
                     spitArg = splitRequest[1].split(";", 2);
@@ -52,8 +50,9 @@ public class ClientHandler implements Runnable {
 
     /**
      * It gets a request from the client, splits the request into an array of strings, and then calls the
-     * appropriate method of the FileHandler class
-     * 
+     * appropriate method of the FileHandler class. 
+     *  If the request is "read" or "write", the method will load the semaphores of the required file.  
+     *
      * @param toClient the output stream to the client
      * @param fromClient the input stream from the client
      * @return The method returns a boolean value.
@@ -62,16 +61,18 @@ public class ClientHandler implements Runnable {
         FileHandler fileHandler = new FileHandler(path ); // Path di ogni sistema operativo
         if (splitRequest[0].equalsIgnoreCase("new"))
             toClient.writeObject("\n" +fileHandler.newFile(splitRequest[1]));
-        else if (splitRequest[0].equalsIgnoreCase("rename")){ // METTERE UN IF SE NON ESISTE spitArg[1] MI DA ERRORE
-        toClient.writeObject("\n" +fileHandler.renameFile(spitArg[0], spitArg[1]));
-        }
+        else if (splitRequest[0].equalsIgnoreCase("rename"))
+            toClient.writeObject("\n" +fileHandler.renameFile(spitArg[0], spitArg[1]));
         else if (splitRequest[0].equalsIgnoreCase("delete"))
             toClient.writeObject("\n" +fileHandler.deleteFile(splitRequest[1]));
         else if (splitRequest[0].equalsIgnoreCase("dir"))
             toClient.writeObject("\n" +fileHandler.getFilesName());
         else if (splitRequest[0].equalsIgnoreCase("edit")){
             ReaderWriterSem semaphore = getSemaphore();
-            toClient.writeObject("\n" +readFile(semaphore, fileHandler));  //read file
+            // as a sidenote, i would like to point out that the design we chose to display the text before entering the editFile() method, is also functional.
+            // we coded a ping-pong communication between client and server. After the client sends a message, he waits for the answer from the server and vice-versa. 
+            // Therefore, the server needs to send a response in order to wake-up the client. (See line 32 in client.Main). 
+            toClient.writeObject("\n" +readFile(semaphore, fileHandler)); 
             editFile(semaphore, fileHandler, fromClient,toClient);
             toClient.writeObject("\n" +"exiting editor...");
         }
@@ -91,7 +92,9 @@ public class ClientHandler implements Runnable {
      *  if the message is "backspace:" it calls the backspace function of the fileHandler, 
      *  if the message is "exit:" it breaks the loop, 
      *  otherwise it calls the writeLine function of the fileHandler
-     * 
+     *
+     *  This method is an internal loop of client-server communication, hence all those passed variables.  
+     *
      * @param semaphore a ReaderWriterSem object
      * @param fileHandler is a class that handles the file, it has a method to write a line, a method
      * to delete a line and a method to read a line.
@@ -140,7 +143,7 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * If the file is not in the hashmap, create a new semaphore for it and add it to the hashmap. If
+     * If the file is not in the hashmap, create a new semaphore for it and adds it to the hashmap. If
      * it is in the hashmap, return the semaphore for that file
      * 
      * @return The semaphore for the file.
