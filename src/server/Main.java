@@ -1,6 +1,8 @@
 package server;
 
 import utils.*;
+
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -22,6 +24,12 @@ public class Main {
         HashMap<String, ReaderWriterSem> critSecHndl = new HashMap<>();
         try {
             ServerSocket listener = new ServerSocket(port);
+            File directory = new File(System.getProperty("user.dir") + File.separator + "data");
+            if (! directory.exists()){
+            directory.mkdir();
+            // If you require it to make the entire directory path including parents,
+            // use directory.mkdirs(); here instead.
+            }
 
             // Listening for new connections.
             while (true) {

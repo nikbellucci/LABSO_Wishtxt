@@ -32,7 +32,7 @@ public class Main {
                 String message = (String) fromServer.readObject();
                 System.out.println(message);
 
-                if(scan.equals("quit:")) break;
+                if(scan.equals(":quit")) break;
 
             }
             fromServer.close();

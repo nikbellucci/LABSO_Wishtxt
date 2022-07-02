@@ -11,8 +11,9 @@ public class ClientHandler implements Runnable {
     private Socket s;
     // This hashmap links a semaphore with each used file by the clients
     private HashMap<String, ReaderWriterSem> criticHandle = new HashMap<>(); // string nomeFile
-    private String[] spitArg=null,splitRequest=null;
+    private String[] splitArg=null,splitRequest=null;
     private String path = System.getProperty("user.dir") + File.separator + "data";
+    // private String routePath = this.getClass().getClassLoader().getResource(File.separator).getPath();
 
     public ClientHandler(Socket s, HashMap<String, ReaderWriterSem> criticHandle) {
         this.s = s;
@@ -26,6 +27,7 @@ public class ClientHandler implements Runnable {
             ObjectOutputStream toClient = new ObjectOutputStream(s.getOutputStream());
             ObjectInputStream fromClient = new ObjectInputStream(s.getInputStream());
             while (true) {
+                // System.out.println(routePath);
                 // Checking if the message from the client contains a colon. If it does not, it sends
                 // an error message to the client.
                 String message = (String) fromClient.readObject();
@@ -35,9 +37,11 @@ public class ClientHandler implements Runnable {
                 }
                 
                 try {
-                    splitRequest = message.split(":", 2);
-                    spitArg = splitRequest[1].split(";", 2);
-
+                    // splitRequest = message.split(":", 2);
+                    // spitArg = splitRequest[1].split(";", 2);
+                    splitRequest = message.split("\\s+", 2);
+                    splitRequest[0] = splitRequest[0].replace(":", "");
+                    splitArg = splitRequest[1].split(";", 2);
                 }catch (ArrayIndexOutOfBoundsException e){
                     e.printStackTrace();
                 }
@@ -58,11 +62,11 @@ public class ClientHandler implements Runnable {
      * @return The method returns a boolean value.
      */
     private boolean getResponse(ObjectOutputStream toClient, ObjectInputStream fromClient) throws IOException, ClassNotFoundException {
-        FileHandler fileHandler = new FileHandler(path ); // Path di ogni sistema operativo
+        FileHandler fileHandler = new FileHandler(path); // Path di ogni sistema operativo
         if (splitRequest[0].equalsIgnoreCase("new"))
             toClient.writeObject("\n" +fileHandler.newFile(splitRequest[1]));
         else if (splitRequest[0].equalsIgnoreCase("rename"))
-            toClient.writeObject("\n" +fileHandler.renameFile(spitArg[0], spitArg[1]));
+            toClient.writeObject("\n" +fileHandler.renameFile(splitArg[0], splitArg[1]));
         else if (splitRequest[0].equalsIgnoreCase("delete"))
             toClient.writeObject("\n" +fileHandler.deleteFile(splitRequest[1]));
         else if (splitRequest[0].equalsIgnoreCase("dir"))
