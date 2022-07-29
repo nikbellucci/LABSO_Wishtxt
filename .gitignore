@@ -51,6 +51,8 @@ replay_pid*
 .DS_Store
 launch.json
 
+data/
+
 # Support for Project snippet scope
 
 # End of https://www.toptal.com/developers/gitignore/api/java,visualstudiocode
