@@ -1,11 +1,37 @@
 package utils;
-import utils.*;
 
 public class ReaderWriterSem {
     // This class handles critical sections (reader-writer problem) within a single file. An object for each file is needed
 
     private int readerCount=0;
     private boolean dbReading=false, dbWriting=false;
+
+    /**
+     * This function returns the number of readers currently reading from the database.
+     * 
+     * @return The number of readers currently reading the book.
+     */
+    public int getReaderCount() {
+        return this.readerCount;
+    }
+
+    /**
+     * Returns true if the database is currently being read from.
+     * 
+     * @return The value of the dbReading variable.
+     */
+    public boolean isDbReading() {
+        return this.dbReading;
+    }
+
+    /**
+     * > Returns true if the database is currently being written to
+     * 
+     * @return The value of the dbWriting variable.
+     */
+    public boolean isDbWriting() {
+        return this.dbWriting;
+    }
 
     /**
      * If the database is being written to, wait until it's not being written to, then increment the
@@ -28,7 +54,6 @@ public class ReaderWriterSem {
         }
     }
 
-
     /**
      * The function decrements the reader count, and if the reader count is 0, it notifies all waiting
      * threads and sets the dbReading flag to false
@@ -47,7 +72,6 @@ public class ReaderWriterSem {
         }
     }
 
-
     /**
      * If the database is being read or written to, wait until it is not being read or written to, 
      * then set the database to be written to
@@ -63,7 +87,6 @@ public class ReaderWriterSem {
             dbWriting = true;
         }
     }
-
 
     /**
      * If the database is being written to, wait until it's done, then set the database to not being

@@ -1,6 +1,7 @@
 package utils;
 
 import java.io.EOFException;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -9,13 +10,18 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+/**
+ * This class handles the client's connection to the server.
+ */
 public class ClientHandler implements Runnable {
     private Socket client;
     // This hashmap links a semaphore with each used file by the clients
-    private HashMap < String, ReaderWriterSem > criticHandle = new HashMap < > (); // string nomeFile
+    private HashMap <String, ReaderWriterSem> criticHandle = new HashMap<String, ReaderWriterSem>(); // string nomeFile
     private String[] splitArg = null;
     private String splitRequest = "";
     private String path;
+    private String file = "";
+    
     private String[] commands = {
         "create",
         "rename",
@@ -27,25 +33,31 @@ public class ClientHandler implements Runnable {
     };
     // private String routePath = this.getClass().getClassLoader().getResource(File.separator).getPath();
 
-    public ClientHandler(Socket client, HashMap < String, ReaderWriterSem > criticHandle, String path) {
+    public ClientHandler(Socket client, HashMap <String, ReaderWriterSem> criticHandle, String path) {
         this.client = client;
         this.criticHandle = criticHandle;
         this.path = path;
     }
 
-    //This method communicates w/ the client the thread was assigned to. It is an infinte loop until the command "quit" is called, which returns a false in line 44
+    /**
+     * It reads the message from the client, splits it into a command and an argument, and then calls
+     * the getResponse function
+     */
     @Override
     public void run() {
         try {
             ObjectOutputStream toClient = new ObjectOutputStream(client.getOutputStream());
             ObjectInputStream fromClient = new ObjectInputStream(client.getInputStream());
+            Connection.initializeClientOnMap(client);
+            Connection.addElementOnClientStream(client, toClient);
 
             while (true) {
                 // Checking if the message from the client contains a colon. If it does not, it sends
                 // an error message to the client.
-
                 splitRequest = "";
                 splitArg = null;
+
+                // System.out.println(Connection.getClientsMap().get(client));
 
                 try {
                     String message = (String) fromClient.readObject();
@@ -56,25 +68,28 @@ public class ClientHandler implements Runnable {
                             System.out.println("Client: " + client.getInetAddress() + ":" + client.getPort() + ", command: " + splitRequest);
                             if (tmpString.length > 1) {
                                 splitArg = tmpString[1].split("\\s", 2);
+                                for (int i = 0; i < splitArg.length; i++) {
+                                    if (!splitArg[i].contains(".txt")) {
+                                        splitArg[i] = splitArg[i] + ".txt";
+                                    }
+                                }
+                                
                             }
                             break;
                         }
                     }
                 } catch (ArrayIndexOutOfBoundsException | EOFException | SocketException e) {
-                    System.out.println("Socket closed: " + client);
+                    // System.out.println("Socket closed: " + client);
                     break;
                     // e.printStackTrace();
                 }
 
-
                 if (!getResponse(toClient, fromClient))
                     break;
             }
-
-            toClient.close();
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("Client connection closed");
-            e.printStackTrace();
+            // e.printStackTrace();
         }
     }
 
@@ -93,32 +108,48 @@ public class ClientHandler implements Runnable {
             toClient.writeObject("\n" + fileHandler.newFile(splitArg[0]));
         else if (splitRequest.equalsIgnoreCase("rename"))
             toClient.writeObject("\n" + fileHandler.renameFile(splitArg[0], splitArg[1]));
-        else if (splitRequest.equalsIgnoreCase("delete"))
+        else if (splitRequest.equalsIgnoreCase("delete")){
             toClient.writeObject("\n" + fileHandler.deleteFile(splitArg[0]));
-        else if (splitRequest.equalsIgnoreCase("list"))
+            criticHandle.remove(splitArg[0]);
+        } else if (splitRequest.equalsIgnoreCase("list"))
+            // TODO stamapare anche il numero di utenti che stanno leggendo/scrivendo i determinati file
             toClient.writeObject("\n" + fileHandler.getFilesName());
         else if (splitRequest.equalsIgnoreCase("edit")) {
             ReaderWriterSem semaphore = getSemaphore();
+            Connection.isWriting(client);
             // as a sidenote, i would like to point out that the design we chose to display the text before entering the editFile() method, is also functional.
             // we coded a ping-pong communication between client and server. After the client sends a message, he waits for the answer from the server and vice-versa. 
             // Therefore, the server needs to send a response in order to wake-up the client. (See line 32 in client.Main). 
             toClient.writeObject("\n" + readFile(semaphore, fileHandler));
             editFile(semaphore, fileHandler, fromClient, toClient);
             toClient.writeObject("\n" + "exiting editor...");
+            Connection.isIdle(client);
         } else if (splitRequest.equalsIgnoreCase("read")) {
             ReaderWriterSem semaphore = getSemaphore();
-            toClient.writeObject("\n" + readFile(semaphore, fileHandler));
+            Connection.isReading(client);
+            readFile(semaphore, fileHandler, fromClient, toClient);
+            // toClient.writeObject("\n" + readFile(semaphore, fileHandler));
+            toClient.writeObject("\n" + "exiting reading mode...");
+            Connection.isIdle(client);
         } else if (splitRequest.equalsIgnoreCase("quit")) {
-            ArrayList<Socket> clients = new ArrayList<Socket>(Connection.getClients());
-            for (Socket clientOnClients: clients) {
-                if (client.getInetAddress().equals(clientOnClients.getInetAddress()) && client.getPort() == clientOnClients.getPort()) {
-                    Connection.removeElement(client);
-                    // System.out.println(clientOnClients);
-                }
-            }
-            // client.close();
+            // ArrayList<Socket> clients = new ArrayList<Socket>(Connection.getClients());
+            System.out.println("Client at address: " + client.getInetAddress() + ":" + client.getPort() + " closed");
+            // for (Socket clientOnClients: clients) {
+            //     if (client.getInetAddress().equals(clientOnClients.getInetAddress()) && client.getPort() == clientOnClients.getPort()) {
+            //         fromClient.close();
+            //         toClient.close();
+            //         Connection.removeElement(client);
+            //         Connection.removeElementFromMap(client);
+            //     }
+            // }
+            fromClient.close();
+            toClient.close();
+            Connection.removeElement(client); 
+            Connection.removeElementFromMap(client);
+            Connection.removeElementFromClientStream(client);
+            client.close();
             return false;
-        } else toClient.writeObject("\n" + "Invalid command!\nSyntax: [command] [argument1] [argument2]");
+        } else toClient.writeObject("\n" + "Invalid command!\nSyntax: [command] [argument(s)...]");
         return true;
     }
 
@@ -147,7 +178,7 @@ public class ClientHandler implements Runnable {
             } else if (message.equalsIgnoreCase(":close"))
                 break;
             else
-                fileHandler.writeLine(splitArg[0], message + "\n"); //TODO aggiungere \n alla prima riga
+                fileHandler.writeLine(splitArg[0], message + "\n");
 
             toClient.writeObject("saved...");
         }
@@ -166,17 +197,36 @@ public class ClientHandler implements Runnable {
      */
     private String readFile(ReaderWriterSem semaphore, FileHandler fileHandler) {
         semaphore.startRead(); //start of critical section
-
         String response = fileHandler.readFile(splitArg[0]);
 
         if (response.length() == 0) {
             semaphore.endRead();
-            return "file empty, write..";
+            return "file empty, write...";
         } else {
             semaphore.endRead();
             return response;
         }
+        
+    }
 
+    private void readFile(ReaderWriterSem semaphore, FileHandler fileHandler, ObjectInputStream fromClient, ObjectOutputStream toClient) throws IOException, ClassNotFoundException {
+        semaphore.startRead(); //start of critical section
+        String response = fileHandler.readFile(splitArg[0]);
+
+        if (response.length() == 0) {
+            toClient.writeObject("file empty, write...");
+        } else {
+            toClient.writeObject("\n" + response);
+            
+        }
+
+        while (true) {
+            String message = (String) fromClient.readObject();
+            if (message.equalsIgnoreCase(":close"))
+                break;
+        }
+        semaphore.endRead();
+        
     }
 
     /**
@@ -191,6 +241,9 @@ public class ClientHandler implements Runnable {
             fileSemaphore = new ReaderWriterSem();
             criticHandle.put(splitArg[0], fileSemaphore);
         }
+        // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbWriting());
+        // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbReading());
+
         return fileSemaphore;
     }
 

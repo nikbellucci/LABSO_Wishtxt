@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Date;
 import java.util.Scanner;
 
 public class FileHandler {
@@ -28,7 +29,8 @@ public class FileHandler {
 
         for(File f : filesList) {
                 if (f.isFile()) {
-                    fileStr += f.getName() + "\n";
+                    fileStr += "Name file: " + f.getName() + "  last modified: " + new Date(f.lastModified()) + "\n";
+                    // System.out.println(fileStr);
                 }
         }
         return fileStr;

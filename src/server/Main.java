@@ -51,7 +51,6 @@ public class Main {
             System.out.println("Server closed");
         } catch (IOException e) {
             System.err.println("Error during I/O operation");
-            e.printStackTrace();
         }
     }
 
