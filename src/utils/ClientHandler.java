@@ -106,14 +106,33 @@ public class ClientHandler implements Runnable {
         FileHandler fileHandler = new FileHandler(path); // Path di ogni sistema operativo
         if (splitRequest.equalsIgnoreCase("create"))
             toClient.writeObject("\n" + fileHandler.newFile(splitArg[0]));
-        else if (splitRequest.equalsIgnoreCase("rename"))
+        else if (splitRequest.equalsIgnoreCase("rename")){
+            ReaderWriterSem semaphore = getSemaphore();
+            semaphore.startWrite();
+            Connection.isWriting(client);
             toClient.writeObject("\n" + fileHandler.renameFile(splitArg[0], splitArg[1]));
+            semaphore.endWrite();
+            Connection.isIdle(client);
+        }
         else if (splitRequest.equalsIgnoreCase("delete")){
+            ReaderWriterSem semaphore = getSemaphore();
+            semaphore.startWrite();
+            Connection.isWriting(client);
             toClient.writeObject("\n" + fileHandler.deleteFile(splitArg[0]));
             criticHandle.remove(splitArg[0]);
-        } else if (splitRequest.equalsIgnoreCase("list"))
+            semaphore.endWrite();
+            Connection.isIdle(client);
+        } else if (splitRequest.equalsIgnoreCase("list")){
             // TODO stamapare anche il numero di utenti che stanno leggendo/scrivendo i determinati file
-            toClient.writeObject("\n" + fileHandler.getFilesName());
+            ReaderWriterSem semaphore = null;
+            HashMap<String, String> listOfFiles = fileHandler.getFilesName();
+            String response = "";
+            for (String nameFile : listOfFiles.keySet()) {
+                semaphore = getSemaphore(nameFile);
+                response += "name file: " + nameFile + "lasta modified: " + listOfFiles.get(nameFile) + " user reading: " + semaphore.getReaderCount() + " user writing: " + semaphore.isDbWriting();
+            }
+            toClient.writeObject("\n" + response);
+        }
         else if (splitRequest.equalsIgnoreCase("edit")) {
             ReaderWriterSem semaphore = getSemaphore();
             Connection.isWriting(client);
@@ -240,6 +259,18 @@ public class ClientHandler implements Runnable {
         if (fileSemaphore == null) {
             fileSemaphore = new ReaderWriterSem();
             criticHandle.put(splitArg[0], fileSemaphore);
+        }
+        // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbWriting());
+        // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbReading());
+
+        return fileSemaphore;
+    }
+
+    private synchronized ReaderWriterSem getSemaphore(String nameFile) {
+        ReaderWriterSem fileSemaphore = criticHandle.get(nameFile); // checks if semaphoreHandler for file exists
+        if (fileSemaphore == null) {
+            fileSemaphore = new ReaderWriterSem();
+            criticHandle.put(nameFile, fileSemaphore);
         }
         // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbWriting());
         // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbReading());

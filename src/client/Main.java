@@ -10,7 +10,7 @@ public class Main {
 
         //Prendi in input l'indirizzo e la porta a cui connettersi
         if (args.length < 2) {
-            System.err.println("Usage: java Client <host> <port>");
+            System.err.println("Usage: java client.Main <host> <port>");
             return;
         }
         String host = args[0];

@@ -14,8 +14,8 @@ import java.util.HashMap;
 public class Main {
 
     public static void main(String[] args) {
-        if (args.length < 1) {
-            System.err.println("Usage: java Server <port>");
+        if (args.length < 2) {
+            System.err.println("Usage: java server.Main <path> <port>");
             return;
         }
         String path = System.getProperty("user.dir") + File.separator + args[0];

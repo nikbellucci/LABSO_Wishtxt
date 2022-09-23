@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Scanner;
 
 public class FileHandler {
@@ -22,14 +23,16 @@ public class FileHandler {
      * 
      * @return A string of all the files in the directory.
      */
-    public String getFilesName() {
+    public HashMap<String, String> getFilesName() {
         File curDir = new File(path);
         File[] filesList = curDir.listFiles();
-        String fileStr = "";
+        HashMap<String, String> fileStr = new HashMap<String, String>();
 
         for(File f : filesList) {
                 if (f.isFile()) {
-                    fileStr += "Name file: " + f.getName() + "  last modified: " + new Date(f.lastModified()) + "\n";
+                    fileStr.put(f.getName(), new Date(f.lastModified()).toString());
+
+                    // "Name file: " + f.getName() + "  last modified: " + new Date(f.lastModified()) + "\n"
                     // System.out.println(fileStr);
                 }
         }
