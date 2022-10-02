@@ -4,8 +4,10 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Array;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -18,6 +20,7 @@ public class ClientHandler implements Runnable {
     private String[] splitArg = null;
     private String splitRequest = "";
     private String path;
+    private String fullArg;
 
     private String[] commands = {
         "create",
@@ -52,7 +55,7 @@ public class ClientHandler implements Runnable {
                 // Checking if the message from the client contains a colon. If it does not, it sends
                 // an error message to the client.
                 splitRequest = "";
-                splitArg = null;
+                splitArg = new String[1];
 
                 // System.out.println(Connection.getClientsMap().get(client));
 
@@ -71,7 +74,11 @@ public class ClientHandler implements Runnable {
                                     }
                                 }
                             }
-
+                            if (!tmpString[1].contains(".txt")) {
+                                tmpString[1] = tmpString[1] + ".txt";
+                            }
+                            fullArg = tmpString[1];
+                            System.out.println(Arrays.deepToString(tmpString));
                             break;
                         }
                     }
@@ -103,7 +110,7 @@ public class ClientHandler implements Runnable {
         FileHandler fileHandler = new FileHandler(path); // Path di ogni sistema operativo
         if (splitRequest.equalsIgnoreCase("create")) {
             if (splitArg != null) {
-                toClient.writeObject("\n" + fileHandler.newFile(splitArg[0]));
+                toClient.writeObject("\n" + fileHandler.newFile(fullArg));
             } else {
                 toClient.writeObject("\n" + "Invalid argument(s)...]");
             }
@@ -130,8 +137,8 @@ public class ClientHandler implements Runnable {
                 ReaderWriterSem semaphore = getSemaphore();
                 semaphore.startWrite();
                 Connection.isWriting(client);
-                toClient.writeObject("\n" + fileHandler.deleteFile(splitArg[0]));
-                criticHandle.remove(splitArg[0]);
+                toClient.writeObject("\n" + fileHandler.deleteFile(fullArg));
+                criticHandle.remove(fullArg);
                 semaphore.endWrite();
                 Connection.isIdle(client);
                 Connection.isIdle(client);
@@ -139,7 +146,6 @@ public class ClientHandler implements Runnable {
                 toClient.writeObject("\n" + "Invalid argument(s)...]");
             }
         } else if (splitRequest.equalsIgnoreCase("list")) {
-            // TODO stamapare anche il numero di utenti che stanno leggendo/scrivendo i determinati file
             ReaderWriterSem semaphore = null;
             HashMap < String, String > listOfFiles = fileHandler.getFilesName();
             String response = "";
@@ -282,10 +288,10 @@ public class ClientHandler implements Runnable {
      * @return The semaphore for the file.
      */
     private synchronized ReaderWriterSem getSemaphore() {
-        ReaderWriterSem fileSemaphore = criticHandle.get(splitArg[0]); // checks if semaphoreHandler for file exists
+        ReaderWriterSem fileSemaphore = criticHandle.get(fullArg); // checks if semaphoreHandler for file exists
         if (fileSemaphore == null) {
             fileSemaphore = new ReaderWriterSem();
-            criticHandle.put(splitArg[0], fileSemaphore);
+            criticHandle.put(fullArg, fileSemaphore);
         }
         // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbWriting());
         // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbReading());
