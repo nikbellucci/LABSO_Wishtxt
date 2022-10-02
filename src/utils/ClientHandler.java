@@ -86,7 +86,7 @@ public class ClientHandler implements Runnable {
             }
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("Client connection closed");
-            // e.printStackTrace();
+            e.printStackTrace();
         }
     }
 
@@ -110,12 +110,18 @@ public class ClientHandler implements Runnable {
         }
         else if (splitRequest.equalsIgnoreCase("rename")) {
             if (splitArg != null || splitArg.length < 2) {
-                ReaderWriterSem semaphore = getSemaphore();
-                semaphore.startWrite();
-                Connection.isWriting(client);
-                toClient.writeObject("\n" + fileHandler.renameFile(splitArg[0], splitArg[1]));
-                semaphore.endWrite();
-                Connection.isIdle(client);
+                
+                if (splitArg[1].contains(" ") || splitArg[0].contains(" ")) {
+                    toClient.writeObject("Invalid argument(s)...]");
+                } else {
+                    ReaderWriterSem semaphore = getSemaphore();
+                    semaphore.startWrite();
+                    Connection.isWriting(client);
+                    toClient.writeObject("\n" + fileHandler.renameFile(splitArg[0], splitArg[1]));
+                    semaphore.endWrite();
+                    Connection.isIdle(client);
+                }
+                
             } else {
                 toClient.writeObject("\n" + "Invalid argument(s)...]");
             }
