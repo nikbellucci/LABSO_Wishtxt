@@ -129,7 +129,7 @@ public class ClientHandler implements Runnable {
             String response = "";
             for (String nameFile : listOfFiles.keySet()) {
                 semaphore = getSemaphore(nameFile);
-                response += "name file: " + nameFile + "lasta modified: " + listOfFiles.get(nameFile) + " user reading: " + semaphore.getReaderCount() + " user writing: " + semaphore.isDbWriting();
+                response += "name file: " + nameFile + "\nlast modified: " + listOfFiles.get(nameFile) + "\nuser reading: " + semaphore.getReaderCount() + "\nuser writing: " + semaphore.isDbWriting() + "\n\n";
             }
             toClient.writeObject("\n" + response);
         }
@@ -233,7 +233,7 @@ public class ClientHandler implements Runnable {
         String response = fileHandler.readFile(splitArg[0]);
 
         if (response.length() == 0) {
-            toClient.writeObject("file empty, write...");
+            toClient.writeObject("file empty");
         } else {
             toClient.writeObject("\n" + response);
             
