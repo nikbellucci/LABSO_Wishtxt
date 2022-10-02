@@ -3,6 +3,7 @@ package client;
 import java.io.*;
 import java.net.ConnectException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Scanner;
 
 public class Main {
@@ -59,7 +60,9 @@ public class Main {
             System.out.println("Client closed");
             // e.printStackTrace();
         } catch (ClassNotFoundException e) {
-            // e.printStackTrace();
+             e.printStackTrace();
+        } catch (SocketException e) {
+            System.out.println("The server disconnected from socket");
         } catch (IOException e) {
             System.err.println("Error during an I/O operation:");
             e.printStackTrace();

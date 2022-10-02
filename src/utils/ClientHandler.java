@@ -104,53 +104,59 @@ public class ClientHandler implements Runnable {
      */
     private boolean getResponse(ObjectOutputStream toClient, ObjectInputStream fromClient) throws IOException, ClassNotFoundException {
         FileHandler fileHandler = new FileHandler(path); // Path di ogni sistema operativo
-        if (splitRequest.equalsIgnoreCase("create"))
-            toClient.writeObject("\n" + fileHandler.newFile(splitArg[0]));
-        else if (splitRequest.equalsIgnoreCase("rename")){
-            ReaderWriterSem semaphore = getSemaphore();
-            semaphore.startWrite();
-            Connection.isWriting(client);
-            toClient.writeObject("\n" + fileHandler.renameFile(splitArg[0], splitArg[1]));
-            semaphore.endWrite();
-            Connection.isIdle(client);
-        }
-        else if (splitRequest.equalsIgnoreCase("delete")){
-            ReaderWriterSem semaphore = getSemaphore();
-            semaphore.startWrite();
-            Connection.isWriting(client);
-            toClient.writeObject("\n" + fileHandler.deleteFile(splitArg[0]));
-            criticHandle.remove(splitArg[0]);
-            semaphore.endWrite();
-            Connection.isIdle(client);
-        } else if (splitRequest.equalsIgnoreCase("list")){
-            // TODO stamapare anche il numero di utenti che stanno leggendo/scrivendo i determinati file
-            ReaderWriterSem semaphore = null;
-            HashMap<String, String> listOfFiles = fileHandler.getFilesName();
-            String response = "";
-            for (String nameFile : listOfFiles.keySet()) {
-                semaphore = getSemaphore(nameFile);
-                response += "name file: " + nameFile + "\nlast modified: " + listOfFiles.get(nameFile) + "\nuser reading: " + semaphore.getReaderCount() + "\nuser writing: " + semaphore.isDbWriting() + "\n\n";
+        if(splitArg != null){                           //all comands that requests arguments
+            if (splitRequest.equalsIgnoreCase("create"))    
+                toClient.writeObject("\n" + fileHandler.newFile(splitArg[0]));
+            else if (splitRequest.equalsIgnoreCase("rename")){
+                if(splitArg.length > 1){
+                    toClient.writeObject("\n" + "Invalid syntax: rename [oldName] [newName]");
+                }
+                ReaderWriterSem semaphore = getSemaphore();
+                semaphore.startWrite();
+                Connection.isWriting(client);
+                toClient.writeObject("\n" + fileHandler.renameFile(splitArg[0], splitArg[1]));
+                semaphore.endWrite();
+                Connection.isIdle(client);
             }
-            toClient.writeObject("\n" + response);
+            else if (splitRequest.equalsIgnoreCase("delete")){
+                ReaderWriterSem semaphore = getSemaphore();
+                semaphore.startWrite();
+                Connection.isWriting(client);
+                toClient.writeObject("\n" + fileHandler.deleteFile(splitArg[0]));
+                criticHandle.remove(splitArg[0]);
+                semaphore.endWrite();
+                Connection.isIdle(client);
+            } 
+            else if (splitRequest.equalsIgnoreCase("edit")) {
+                ReaderWriterSem semaphore = getSemaphore();
+                Connection.isWriting(client);
+                // as a sidenote, i would like to point out that the design we chose to display the text before entering the editFile() method, is also functional.
+                // we coded a ping-pong communication between client and server. After the client sends a message, he waits for the answer from the server and vice-versa. 
+                // Therefore, the server needs to send a response in order to wake-up the client. (See line 32 in client.Main). 
+                toClient.writeObject("\n" + readFile(semaphore, fileHandler));
+                editFile(semaphore, fileHandler, fromClient, toClient);
+                toClient.writeObject("\n" + "exiting editor...");
+                Connection.isIdle(client);
+            } else if (splitRequest.equalsIgnoreCase("read")) {
+                ReaderWriterSem semaphore = getSemaphore();
+                Connection.isReading(client);
+                readFile(semaphore, fileHandler, fromClient, toClient);
+                // toClient.writeObject("\n" + readFile(semaphore, fileHandler));
+                toClient.writeObject("\n" + "exiting reading mode...");
+                Connection.isIdle(client);
+            } 
         }
-        else if (splitRequest.equalsIgnoreCase("edit")) {
-            ReaderWriterSem semaphore = getSemaphore();
-            Connection.isWriting(client);
-            // as a sidenote, i would like to point out that the design we chose to display the text before entering the editFile() method, is also functional.
-            // we coded a ping-pong communication between client and server. After the client sends a message, he waits for the answer from the server and vice-versa. 
-            // Therefore, the server needs to send a response in order to wake-up the client. (See line 32 in client.Main). 
-            toClient.writeObject("\n" + readFile(semaphore, fileHandler));
-            editFile(semaphore, fileHandler, fromClient, toClient);
-            toClient.writeObject("\n" + "exiting editor...");
-            Connection.isIdle(client);
-        } else if (splitRequest.equalsIgnoreCase("read")) {
-            ReaderWriterSem semaphore = getSemaphore();
-            Connection.isReading(client);
-            readFile(semaphore, fileHandler, fromClient, toClient);
-            // toClient.writeObject("\n" + readFile(semaphore, fileHandler));
-            toClient.writeObject("\n" + "exiting reading mode...");
-            Connection.isIdle(client);
-        } else if (splitRequest.equalsIgnoreCase("quit")) {
+        //all comands that dont require arguments
+        else if (splitRequest.equalsIgnoreCase("list")){
+                ReaderWriterSem semaphore = null;
+                HashMap<String, String> listOfFiles = fileHandler.getFilesName();
+                String response = "";
+                for (String nameFile : listOfFiles.keySet()) {
+                    semaphore = getSemaphore(nameFile);
+                    response += "name file: " + nameFile + "lasta modified: " + listOfFiles.get(nameFile) + " user reading: " + semaphore.getReaderCount() + " user writing: " + semaphore.isDbWriting();
+                }
+                toClient.writeObject("\n" + response);
+        }else if (splitRequest.equalsIgnoreCase("quit")) {
             // ArrayList<Socket> clients = new ArrayList<Socket>(Connection.getClients());
             System.out.println("Client at address: " + client.getInetAddress() + ":" + client.getPort() + " closed");
             // for (Socket clientOnClients: clients) {
@@ -192,9 +198,9 @@ public class ClientHandler implements Runnable {
         semaphore.startWrite();
         while (true) {
             String message = (String) fromClient.readObject();
-            if (message.equalsIgnoreCase("backspace:")) {
+            if (message.equalsIgnoreCase(":backspace")) {
                 fileHandler.backSpace(splitArg[0]);
-            } else if (message.equalsIgnoreCase("close:"))
+            } else if (message.equalsIgnoreCase(":close"))
                 break;
             else
                 fileHandler.writeLine(splitArg[0], message + "\n");
