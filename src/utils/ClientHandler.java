@@ -192,9 +192,9 @@ public class ClientHandler implements Runnable {
         semaphore.startWrite();
         while (true) {
             String message = (String) fromClient.readObject();
-            if (message.equalsIgnoreCase(":backspace")) {
+            if (message.equalsIgnoreCase("backspace:")) {
                 fileHandler.backSpace(splitArg[0]);
-            } else if (message.equalsIgnoreCase(":close"))
+            } else if (message.equalsIgnoreCase("close:"))
                 break;
             else
                 fileHandler.writeLine(splitArg[0], message + "\n");
@@ -241,8 +241,10 @@ public class ClientHandler implements Runnable {
 
         while (true) {
             String message = (String) fromClient.readObject();
-            if (message.equalsIgnoreCase(":close"))
+            if (message.equalsIgnoreCase("close:"))
                 break;
+            else
+                toClient.writeObject("to close session use command \"close:\"");
         }
         semaphore.endRead();
         
