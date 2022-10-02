@@ -211,12 +211,14 @@ public class ClientHandler implements Runnable {
             String message = (String) fromClient.readObject();
             if (message.equalsIgnoreCase(":backspace")) {
                 fileHandler.backSpace(splitArg[0]);
+                toClient.writeObject("delete last row");
             } else if (message.equalsIgnoreCase(":close"))
-                break;
-            else
+                break;           
+            else{
                 fileHandler.writeLine(splitArg[0], message + "\n");
-
-            toClient.writeObject("saved...");
+                toClient.writeObject("you just wrote a line");
+            }
+                
         }
         semaphore.endWrite();
     }

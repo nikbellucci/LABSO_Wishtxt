@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.util.Date;
 import java.util.HashMap;
@@ -140,15 +141,43 @@ public class FileHandler {
      * @param fileName The name of the file you want to delete the last line from.
      */
     public void backSpace(String fileName) throws IOException {
+        File file = new File(path+ File.separator+fileName);
+
+        Scanner sc = new Scanner(file);
+
+
+        int count = 0;
+        while(sc.hasNextLine()) {
+            if(count>=2){
+                System.out.println(count);
+                break;
+            }
+            count++;
+        }
+
+        System.out.println("count " + count);
+
+
+          if(count<=1) {
+            PrintWriter writer = new PrintWriter(file);
+            writer.print("");
+            writer.close();
+            return ;
+          }
+
+
         RandomAccessFile f = new RandomAccessFile(path+ File.separator+fileName , "rw");
-        long length = f.length() - 1;
-        byte b;
-        do {
-            length -= 1;
-            f.seek(length);
-            b = f.readByte();
-        } while(b != 10);
-        f.setLength(length+1);
-        f.close();
+        if(f.length() > 0){
+            long length = f.length() - 1;
+            byte b;
+            do {
+                length -= 1;
+                f.seek(length);
+                b = f.readByte();
+            } while(b != 10);
+            f.setLength(length+1);
+            f.close();
+        }
+        
     }
 }
