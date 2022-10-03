@@ -202,7 +202,9 @@ public class ClientHandler implements Runnable {
      * @param toClient the output stream to the client
      */
     private void editFile(FileHandler fileHandler, ObjectInputStream fromClient, ObjectOutputStream toClient) throws IOException, ClassNotFoundException {
-        startWriterCritSec();
+            ReaderWriterSem semaphore = getSemaphore();
+            semaphore.startWrite();
+            Connection.isWriting(client);
             while (true) {
                 String message = (String) fromClient.readObject();
                 if (message.equalsIgnoreCase(":backspace")) {
@@ -216,7 +218,8 @@ public class ClientHandler implements Runnable {
                 }
                     
             }
-        endWriterCritSec();
+            semaphore.endWrite();
+            Connection.isIdle(client);
     }
 
 
