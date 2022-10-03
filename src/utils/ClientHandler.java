@@ -18,6 +18,7 @@ public class ClientHandler implements Runnable {
     private String[] splitArg = null;
     private String splitRequest = "";
     private String path;
+    private ReaderWriterSem semaphore;
     private String fileName;
 
     private String[] commands = {
@@ -100,6 +101,19 @@ public class ClientHandler implements Runnable {
      * @param fromClient the input stream from the client
      * @return The method returns a boolean value.
      */
+
+    private void startWriterCritSec(){
+        ReaderWriterSem semaphore = getSemaphore();
+        semaphore.startWrite();
+        Connection.isWriting(client);
+    }
+
+    private void endWriterCritSec(){
+        semaphore.endWrite();
+        Connection.isIdle(client);
+    }
+
+
     private boolean getResponse(ObjectOutputStream toClient, ObjectInputStream fromClient) throws IOException, ClassNotFoundException {
         FileHandler fileHandler = new FileHandler(path); // Path di ogni sistema operativo
         if (splitRequest.equalsIgnoreCase("create")) {
@@ -112,32 +126,25 @@ public class ClientHandler implements Runnable {
         else if (splitRequest.equalsIgnoreCase("rename")) {
             if (splitArg != null || splitArg.length < 2) {
                 String[] tmp = fileName.split(".txt");         //[test 1].txt[ test 2].txt
-                tmp[0] = tmp[0] + ".txt";                           //[test 1.txt]
-                tmp[1] = tmp[1].substring(1)+".txt";    //[test 2.txt]
+                tmp[0] = tmp[0] + ".txt";                            //[test 1.txt]
+                tmp[1] = tmp[1].substring(1)+".txt";      //[test 2.txt]
                 
-                ReaderWriterSem semaphore = getSemaphore();
-                semaphore.startWrite();
-                Connection.isWriting(client);
-                toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
-                semaphore.endWrite();
-                Connection.isIdle(client);
+                startWriterCritSec();
+                    toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
+                endWriterCritSec();
                 
                 
             } else {
-                toClient.writeObject("\n" + "Invalid argument(s)...]");
+                toClient.writeObject("\n" + "Invalid syntax: rename [oldName.txt] [newName.txt]");
             }
         } else if (splitRequest.equalsIgnoreCase("delete")) {
             if (splitArg != null) {
-                ReaderWriterSem semaphore = getSemaphore();
-                semaphore.startWrite();
-                Connection.isWriting(client);
-                toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
-                criticHandle.remove(fileName);
-                semaphore.endWrite();
-                Connection.isIdle(client);
-                Connection.isIdle(client);
+                startWriterCritSec();
+                    toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
+                    criticHandle.remove(fileName);
+                endWriterCritSec();
             } else {
-                toClient.writeObject("\n" + "Invalid argument(s)...]");
+                toClient.writeObject("\n" + "Invalid syntax: delete [fileName]");
             }
         } else if (splitRequest.equalsIgnoreCase("list")) {
             ReaderWriterSem semaphore = null;
@@ -150,51 +157,41 @@ public class ClientHandler implements Runnable {
             toClient.writeObject("\n" + response);
         } else if (splitRequest.equalsIgnoreCase("edit")) {
             if (splitArg != null) {
-                ReaderWriterSem semaphore = getSemaphore();
-                Connection.isWriting(client);
-                // as a sidenote, i would like to point out that the design we chose to display the text before entering the editFile() method, is also functional.
-                // we coded a ping-pong communication between client and server. After the client sends a message, he waits for the answer from the server and vice-versa. 
-                // Therefore, the server needs to send a response in order to wake-up the client. (See line 32 in client.Main). 
                 toClient.writeObject("\n" + readFile(semaphore, fileHandler));
-                editFile(semaphore, fileHandler, fromClient, toClient);
+                editFile(fileHandler, fromClient, toClient);
                 toClient.writeObject("\n" + "exiting editor...");
-                Connection.isIdle(client);
             } else {
-                toClient.writeObject("\n" + "Invalid argument(s)...]");
+                toClient.writeObject("\n" + "Invalid syntax: edit [fileName]");
             }
         } else if (splitRequest.equalsIgnoreCase("read")) {
             if (splitArg != null) {
                 ReaderWriterSem semaphore = getSemaphore();
                 Connection.isReading(client);
                 readFile(semaphore, fileHandler, fromClient, toClient);
-                // toClient.writeObject("\n" + readFile(semaphore, fileHandler));
                 toClient.writeObject("\n" + "exiting reading mode...");
                 Connection.isIdle(client);
             } else {
-                toClient.writeObject("\n" + "Invalid argument(s)...]");
+                toClient.writeObject("\n" + "Invalid syntax: read [fileName]");
             }
         } else if (splitRequest.equalsIgnoreCase("quit")) {
             // ArrayList<Socket> clients = new ArrayList<Socket>(Connection.getClients());
             System.out.println("Client at address: " + client.getInetAddress() + ":" + client.getPort() + " closed");
-            // for (Socket clientOnClients: clients) {
-            //     if (client.getInetAddress().equals(clientOnClients.getInetAddress()) && client.getPort() == clientOnClients.getPort()) {
-            //         fromClient.close();
-            //         toClient.close();
-            //         Connection.removeElement(client);
-            //         Connection.removeElementFromMap(client);
-            //     }
-            // }
-            fromClient.close();
-            toClient.close();
-            Connection.removeElement(client);
-            Connection.removeElementFromMap(client);
-            Connection.removeElementFromClientStream(client);
-            client.close();
+            quitStuff(fromClient, toClient);
+            
             return false;
         } else toClient.writeObject("\n" + "Invalid command!\nSyntax: [command] [argument(s)...]");
         return true;
     }
 
+
+    private void quitStuff(ObjectInputStream fromClient, ObjectOutputStream toClient) throws IOException {
+        fromClient.close();
+        toClient.close();
+        Connection.removeElement(client);
+        Connection.removeElementFromMap(client);
+        Connection.removeElementFromClientStream(client);
+        client.close();
+    }
 
     //internal loop for the edit mode
     /**
@@ -211,22 +208,22 @@ public class ClientHandler implements Runnable {
      * @param fromClient ObjectInputStream
      * @param toClient the output stream to the client
      */
-    private void editFile(ReaderWriterSem semaphore, FileHandler fileHandler, ObjectInputStream fromClient, ObjectOutputStream toClient) throws IOException, ClassNotFoundException {
-        semaphore.startWrite();
-        while (true) {
-            String message = (String) fromClient.readObject();
-            if (message.equalsIgnoreCase(":backspace")) {
-                fileHandler.backSpace(fileName);
-                toClient.writeObject("delete last row");
-            } else if (message.equalsIgnoreCase(":close"))
-                break;           
-            else{
-                fileHandler.writeLine(fileName, message + "\n");
-                toClient.writeObject("you just wrote a line");
+    private void editFile(FileHandler fileHandler, ObjectInputStream fromClient, ObjectOutputStream toClient) throws IOException, ClassNotFoundException {
+        startWriterCritSec();
+            while (true) {
+                String message = (String) fromClient.readObject();
+                if (message.equalsIgnoreCase(":backspace")) {
+                    fileHandler.backSpace(fileName);
+                    toClient.writeObject("delete last row");
+                } else if (message.equalsIgnoreCase(":close"))
+                    break;           
+                else{
+                    fileHandler.writeLine(fileName, message + "\n");
+                    toClient.writeObject("you just wrote a line");
+                }
+                    
             }
-                
-        }
-        semaphore.endWrite();
+        endWriterCritSec();
     }
 
 
@@ -287,8 +284,6 @@ public class ClientHandler implements Runnable {
             fileSemaphore = new ReaderWriterSem();
             criticHandle.put(fileName, fileSemaphore);
         }
-        // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbWriting());
-        // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbReading());
 
         return fileSemaphore;
     }
@@ -299,8 +294,6 @@ public class ClientHandler implements Runnable {
             fileSemaphore = new ReaderWriterSem();
             criticHandle.put(nameFile, fileSemaphore);
         }
-        // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbWriting());
-        // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbReading());
 
         return fileSemaphore;
     }
