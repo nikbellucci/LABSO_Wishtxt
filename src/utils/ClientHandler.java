@@ -4,8 +4,10 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Array;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -18,6 +20,7 @@ public class ClientHandler implements Runnable {
     private String[] splitArg = null;
     private String splitRequest = "";
     private String path;
+    private String fullArg;
 
     private String[] commands = {
         "create",
@@ -65,20 +68,20 @@ public class ClientHandler implements Runnable {
                             System.out.println("Client: " + client.getInetAddress() + ":" + client.getPort() + ", command: " + splitRequest);
                             if (tmpString.length > 1) {
                                 splitArg = tmpString[1].split("\\s", 2);
-                                for (int i = 0; i < splitArg.length; i++) {
-                                    if (!splitArg[i].contains(".txt")) {
-                                        splitArg[i] = splitArg[i] + ".txt";
-                                    }
-                                }
                             }
-
+                            if(tmpString.length > 1){
+                                if (!tmpString[1].contains(".txt")) {
+                                    tmpString[1] = tmpString[1] + ".txt";
+                                }
+                                fullArg = tmpString[1];
+                            }
                             break;
                         }
                     }
                 } catch (ArrayIndexOutOfBoundsException | EOFException | SocketException e) {
+                    e.printStackTrace();
                     // System.out.println("Socket closed: " + client);
                     break;
-                    // e.printStackTrace();
                 }
 
                 if (!getResponse(toClient, fromClient))
@@ -103,24 +106,24 @@ public class ClientHandler implements Runnable {
         FileHandler fileHandler = new FileHandler(path); // Path di ogni sistema operativo
         if (splitRequest.equalsIgnoreCase("create")) {
             if (splitArg != null) {
-                toClient.writeObject("\n" + fileHandler.newFile(splitArg[0]));
+                toClient.writeObject("\n" + fileHandler.newFile(fullArg));
             } else {
                 toClient.writeObject("\n" + "Invalid argument(s)...]");
             }
         }
         else if (splitRequest.equalsIgnoreCase("rename")) {
             if (splitArg != null || splitArg.length < 2) {
+                String[] tmp = fullArg.split(".txt");         //[test 1].txt[ test 2].txt
+                tmp[0] = tmp[0] + ".txt";                           //[test 1.txt]
+                tmp[1] = tmp[1].substring(1)+".txt";    //[test 2.txt]
                 
-                if (splitArg[1].contains(" ") || splitArg[0].contains(" ")) {
-                    toClient.writeObject("Invalid argument(s)...]");
-                } else {
-                    ReaderWriterSem semaphore = getSemaphore();
-                    semaphore.startWrite();
-                    Connection.isWriting(client);
-                    toClient.writeObject("\n" + fileHandler.renameFile(splitArg[0], splitArg[1]));
-                    semaphore.endWrite();
-                    Connection.isIdle(client);
-                }
+                ReaderWriterSem semaphore = getSemaphore();
+                semaphore.startWrite();
+                Connection.isWriting(client);
+                toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
+                semaphore.endWrite();
+                Connection.isIdle(client);
+                
                 
             } else {
                 toClient.writeObject("\n" + "Invalid argument(s)...]");
@@ -130,8 +133,8 @@ public class ClientHandler implements Runnable {
                 ReaderWriterSem semaphore = getSemaphore();
                 semaphore.startWrite();
                 Connection.isWriting(client);
-                toClient.writeObject("\n" + fileHandler.deleteFile(splitArg[0]));
-                criticHandle.remove(splitArg[0]);
+                toClient.writeObject("\n" + fileHandler.deleteFile(fullArg));
+                criticHandle.remove(fullArg);
                 semaphore.endWrite();
                 Connection.isIdle(client);
                 Connection.isIdle(client);
@@ -139,7 +142,6 @@ public class ClientHandler implements Runnable {
                 toClient.writeObject("\n" + "Invalid argument(s)...]");
             }
         } else if (splitRequest.equalsIgnoreCase("list")) {
-            // TODO stamapare anche il numero di utenti che stanno leggendo/scrivendo i determinati file
             ReaderWriterSem semaphore = null;
             HashMap < String, String > listOfFiles = fileHandler.getFilesName();
             String response = "";
@@ -282,10 +284,10 @@ public class ClientHandler implements Runnable {
      * @return The semaphore for the file.
      */
     private synchronized ReaderWriterSem getSemaphore() {
-        ReaderWriterSem fileSemaphore = criticHandle.get(splitArg[0]); // checks if semaphoreHandler for file exists
+        ReaderWriterSem fileSemaphore = criticHandle.get(fullArg); // checks if semaphoreHandler for file exists
         if (fileSemaphore == null) {
             fileSemaphore = new ReaderWriterSem();
-            criticHandle.put(splitArg[0], fileSemaphore);
+            criticHandle.put(fullArg, fileSemaphore);
         }
         // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbWriting());
         // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbReading());
