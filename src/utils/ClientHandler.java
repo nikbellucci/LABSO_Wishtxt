@@ -64,7 +64,9 @@ public class ClientHandler implements Runnable {
                         if (message.indexOf(command) != -1) {
                             String[] tmpString = message.split("\\s", 2);
                             splitRequest = tmpString[0];
-                            System.out.println("Client: " + client.getInetAddress() + ":" + client.getPort() + ", command: " + splitRequest);
+                            if(command.equals(splitRequest)){
+                                System.out.println("Client: " + client.getInetAddress() + ":" + client.getPort() + ", command: " + splitRequest);
+                            } 
                             if (tmpString.length > 1) {
                                 splitArg = tmpString[1].split("\\s", 2);
                             }

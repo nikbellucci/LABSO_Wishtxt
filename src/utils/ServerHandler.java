@@ -40,6 +40,8 @@ public class ServerHandler implements Runnable {
                 break;  
             } else if (inputString.equals("info")) {
                 info();
+            } else {
+                System.out.println("Syntax error");
             }
         }
         
