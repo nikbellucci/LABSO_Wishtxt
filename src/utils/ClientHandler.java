@@ -4,10 +4,8 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.Array;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -20,7 +18,7 @@ public class ClientHandler implements Runnable {
     private String[] splitArg = null;
     private String splitRequest = "";
     private String path;
-    private String fullArg;
+    private String fileName;
 
     private String[] commands = {
         "create",
@@ -73,7 +71,7 @@ public class ClientHandler implements Runnable {
                                 if (!tmpString[1].contains(".txt")) {
                                     tmpString[1] = tmpString[1] + ".txt";
                                 }
-                                fullArg = tmpString[1];
+                                fileName = tmpString[1];
                             }
                             break;
                         }
@@ -106,14 +104,14 @@ public class ClientHandler implements Runnable {
         FileHandler fileHandler = new FileHandler(path); // Path di ogni sistema operativo
         if (splitRequest.equalsIgnoreCase("create")) {
             if (splitArg != null) {
-                toClient.writeObject("\n" + fileHandler.newFile(fullArg));
+                toClient.writeObject("\n" + fileHandler.newFile(fileName));
             } else {
                 toClient.writeObject("\n" + "Invalid argument(s)...]");
             }
         }
         else if (splitRequest.equalsIgnoreCase("rename")) {
             if (splitArg != null || splitArg.length < 2) {
-                String[] tmp = fullArg.split(".txt");         //[test 1].txt[ test 2].txt
+                String[] tmp = fileName.split(".txt");         //[test 1].txt[ test 2].txt
                 tmp[0] = tmp[0] + ".txt";                           //[test 1.txt]
                 tmp[1] = tmp[1].substring(1)+".txt";    //[test 2.txt]
                 
@@ -133,8 +131,8 @@ public class ClientHandler implements Runnable {
                 ReaderWriterSem semaphore = getSemaphore();
                 semaphore.startWrite();
                 Connection.isWriting(client);
-                toClient.writeObject("\n" + fileHandler.deleteFile(fullArg));
-                criticHandle.remove(fullArg);
+                toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
+                criticHandle.remove(fileName);
                 semaphore.endWrite();
                 Connection.isIdle(client);
                 Connection.isIdle(client);
@@ -218,12 +216,12 @@ public class ClientHandler implements Runnable {
         while (true) {
             String message = (String) fromClient.readObject();
             if (message.equalsIgnoreCase(":backspace")) {
-                fileHandler.backSpace(splitArg[0]);
+                fileHandler.backSpace(fileName);
                 toClient.writeObject("delete last row");
             } else if (message.equalsIgnoreCase(":close"))
                 break;           
             else{
-                fileHandler.writeLine(splitArg[0], message + "\n");
+                fileHandler.writeLine(fileName, message + "\n");
                 toClient.writeObject("you just wrote a line");
             }
                 
@@ -243,7 +241,7 @@ public class ClientHandler implements Runnable {
      */
     private String readFile(ReaderWriterSem semaphore, FileHandler fileHandler) {
         semaphore.startRead(); //start of critical section
-        String response = fileHandler.readFile(splitArg[0]);
+        String response = fileHandler.readFile(fileName);
 
         if (response.length() == 0) {
             semaphore.endRead();
@@ -257,7 +255,7 @@ public class ClientHandler implements Runnable {
 
     private void readFile(ReaderWriterSem semaphore, FileHandler fileHandler, ObjectInputStream fromClient, ObjectOutputStream toClient) throws IOException, ClassNotFoundException {
         semaphore.startRead(); //start of critical section
-        String response = fileHandler.readFile(splitArg[0]);
+        String response = fileHandler.readFile(fileName);
 
         if (response.length() == 0) {
             toClient.writeObject("file empty");
@@ -284,10 +282,10 @@ public class ClientHandler implements Runnable {
      * @return The semaphore for the file.
      */
     private synchronized ReaderWriterSem getSemaphore() {
-        ReaderWriterSem fileSemaphore = criticHandle.get(fullArg); // checks if semaphoreHandler for file exists
+        ReaderWriterSem fileSemaphore = criticHandle.get(fileName); // checks if semaphoreHandler for file exists
         if (fileSemaphore == null) {
             fileSemaphore = new ReaderWriterSem();
-            criticHandle.put(fullArg, fileSemaphore);
+            criticHandle.put(fileName, fileSemaphore);
         }
         // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbWriting());
         // System.out.println("Semafori: " + criticHandle.get(splitArg[0]).isDbReading());
