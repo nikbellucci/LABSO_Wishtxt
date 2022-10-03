@@ -62,7 +62,7 @@ public class Main {
         } catch (ClassNotFoundException e) {
              e.printStackTrace();
         } catch (SocketException e) {
-            System.out.println("The server disconnected from socket");
+            System.out.println("The server was disconnected from socket");
         } catch (IOException e) {
             System.err.println("Error during an I/O operation:");
             e.printStackTrace();

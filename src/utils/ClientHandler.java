@@ -78,8 +78,9 @@ public class ClientHandler implements Runnable {
                         }
                     }
                 } catch (ArrayIndexOutOfBoundsException | EOFException | SocketException e) {
-                    e.printStackTrace();
-                    // System.out.println("Socket closed: " + client);
+                    // e.printStackTrace();
+                    System.out.println("Client unreachable: " + client);
+                    Connection.removeClientConnection(client);
                     break;
                 }
 

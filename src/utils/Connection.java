@@ -45,7 +45,9 @@ public class Connection {
      */
     public static void removeElement(Socket clientToRemove) {
         // System.out.println(clients.indexOf(clientToRemove));
-        clients.remove(clients.indexOf(clientToRemove));
+        if (clients.size() > 0) {
+            clients.remove(clients.indexOf(clientToRemove));
+        }
         // System.out.println("ArrayList di Socket = " + Connection.getClients());
     }
 
@@ -119,5 +121,11 @@ public class Connection {
 
     public static void removeElementFromClientStream(Socket socket) {
         clientStream.remove(socket);
+    }
+
+    public static void removeClientConnection(Socket socket) {
+        removeElement(socket);
+        removeElementFromClientStream(socket);
+        removeElementFromMap(socket);
     }
 }

@@ -56,11 +56,12 @@ public class ServerHandler implements Runnable {
                     toClient = Connection.getElementOnClientStream(client);
                     toClient.writeObject("-1");
                     toClient.close();
-                    // Connection.removeElement(client);
-                    Connection.removeElementFromMap(client);
-                    Connection.removeElementFromClientStream(client);
+                    Connection.removeClientConnection(client);
                     client.close();
                     System.out.println("Client at address: " + client.getInetAddress() + ":" + client.getPort() + " closed");
+                    if (Connection.getClients().size() < 1) {
+                        break;
+                    }
                 }
             }
             this.listener.close();
