@@ -102,6 +102,20 @@ public class ClientHandler implements Runnable {
      * @return The method returns a boolean value.
      */
 
+    public void enterCritSec(){
+        semaphore = getSemaphore();
+        semaphore.startWrite();
+        Connection.isWriting(client);
+    }
+
+    public void exitCritSec(){
+        semaphore.endWrite();
+        Connection.isIdle(client);
+    }
+
+
+    
+
     private boolean getResponse(ObjectOutputStream toClient, ObjectInputStream fromClient) throws IOException, ClassNotFoundException {
         FileHandler fileHandler = new FileHandler(path); // Path di ogni sistema operativo
         if (splitRequest.equalsIgnoreCase("create")) {
@@ -116,26 +130,19 @@ public class ClientHandler implements Runnable {
                 String[] tmp = fileName.split(".txt");         //[test 1].txt[ test 2].txt
                 tmp[0] = tmp[0] + ".txt";                            //[test 1.txt]
                 tmp[1] = tmp[1].substring(1)+".txt";      //[test 2.txt]
-                
-                ReaderWriterSem semaphore = getSemaphore();
-                semaphore.startWrite();
-                Connection.isWriting(client);
-                toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
-                semaphore.endWrite();
-                Connection.isIdle(client);
+                enterCritSec();
+                    toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
+                exitCritSec();
                 
             } else {
                 toClient.writeObject("\n" + "Invalid syntax: rename [oldName.txt] [newName.txt]");
             }
         } else if (splitRequest.equalsIgnoreCase("delete")) {
             if (splitArg != null) {
-                ReaderWriterSem semaphore = getSemaphore();
-                semaphore.startWrite();
-                Connection.isWriting(client);
-                toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
-                criticHandle.remove(fileName);
-                semaphore.endWrite();
-                Connection.isIdle(client);
+                enterCritSec();
+                    toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
+                    criticHandle.remove(fileName);
+                exitCritSec();
             } else {
                 toClient.writeObject("\n" + "Invalid syntax: delete [fileName]");
             }
@@ -202,24 +209,21 @@ public class ClientHandler implements Runnable {
      * @param toClient the output stream to the client
      */
     private void editFile(FileHandler fileHandler, ObjectInputStream fromClient, ObjectOutputStream toClient) throws IOException, ClassNotFoundException {
-            ReaderWriterSem semaphore = getSemaphore();
-            semaphore.startWrite();
-            Connection.isWriting(client);
-            while (true) {
-                String message = (String) fromClient.readObject();
-                if (message.equalsIgnoreCase(":backspace")) {
-                    fileHandler.backSpace(fileName);
-                    toClient.writeObject("delete last row");
-                } else if (message.equalsIgnoreCase(":close"))
-                    break;           
-                else{
-                    fileHandler.writeLine(fileName, message + "\n");
-                    toClient.writeObject("you just wrote a line");
+            enterCritSec();
+                while (true) {
+                    String message = (String) fromClient.readObject();
+                    if (message.equalsIgnoreCase(":backspace")) {
+                        fileHandler.backSpace(fileName);
+                        toClient.writeObject("delete last row");
+                    } else if (message.equalsIgnoreCase(":close"))
+                        break;           
+                    else{
+                        fileHandler.writeLine(fileName, message + "\n");
+                        toClient.writeObject("you just wrote a line");
+                    }
+                        
                 }
-                    
-            }
-            semaphore.endWrite();
-            Connection.isIdle(client);
+            exitCritSec();
     }
 
 
