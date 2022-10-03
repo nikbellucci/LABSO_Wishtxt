@@ -102,18 +102,6 @@ public class ClientHandler implements Runnable {
      * @return The method returns a boolean value.
      */
 
-    private void startWriterCritSec(){
-        ReaderWriterSem semaphore = getSemaphore();
-        semaphore.startWrite();
-        Connection.isWriting(client);
-    }
-
-    private void endWriterCritSec(){
-        semaphore.endWrite();
-        Connection.isIdle(client);
-    }
-
-
     private boolean getResponse(ObjectOutputStream toClient, ObjectInputStream fromClient) throws IOException, ClassNotFoundException {
         FileHandler fileHandler = new FileHandler(path); // Path di ogni sistema operativo
         if (splitRequest.equalsIgnoreCase("create")) {
@@ -129,10 +117,12 @@ public class ClientHandler implements Runnable {
                 tmp[0] = tmp[0] + ".txt";                            //[test 1.txt]
                 tmp[1] = tmp[1].substring(1)+".txt";      //[test 2.txt]
                 
-                startWriterCritSec();
-                    toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
-                endWriterCritSec();
-                
+                ReaderWriterSem semaphore = getSemaphore();
+                semaphore.startWrite();
+                Connection.isWriting(client);
+                toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
+                semaphore.endWrite();
+                Connection.isIdle(client);
                 
             } else {
                 toClient.writeObject("\n" + "Invalid syntax: rename [oldName.txt] [newName.txt]");
