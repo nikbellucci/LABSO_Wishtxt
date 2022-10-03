@@ -77,15 +77,16 @@ public class ClientHandler implements Runnable {
                             break;
                         }
                     }
-                } catch (ArrayIndexOutOfBoundsException | EOFException | SocketException e) {
+                    if (!getResponse(toClient, fromClient))
+                        break;
+                } catch (ArrayIndexOutOfBoundsException | EOFException e) {
                     // e.printStackTrace();
-                    System.out.println("Client unreachable: " + client);
+                    
+                } catch (SocketException e){
+                    System.out.println("Client disconected: " + client);
                     Connection.removeClientConnection(client);
-                    break;
+                    return;
                 }
-
-                if (!getResponse(toClient, fromClient))
-                    break;
             }
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("Client connection closed");
