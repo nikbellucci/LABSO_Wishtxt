@@ -33,8 +33,6 @@ public class FileHandler {
                 if (f.isFile()) {
                     fileStr.put(f.getName(), new Date(f.lastModified()).toString());
 
-                    // "Name file: " + f.getName() + "  last modified: " + new Date(f.lastModified()) + "\n"
-                    // System.out.println(fileStr);
                 }
         }
         return fileStr;
@@ -56,7 +54,10 @@ public class FileHandler {
         if(rename == true)
             return "Rename successful";
         else {
-            if (renamedFile.exists()) return "Filename already exists";
+            if (renamedFile.exists()) 
+                return "Filename already exists";
+            if (!file.exists()) 
+                return "File dosen't exists";
             else return "Internal error"; 
         }
 

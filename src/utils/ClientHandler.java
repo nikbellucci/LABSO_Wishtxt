@@ -77,8 +77,7 @@ public class ClientHandler implements Runnable {
                             break;
                         }
                     }
-                    if (!getResponse(toClient, fromClient))
-                        break;
+                    
                 } catch (ArrayIndexOutOfBoundsException | EOFException e) {
                     // e.printStackTrace();
                     
@@ -87,6 +86,9 @@ public class ClientHandler implements Runnable {
                     Connection.removeClientConnection(client);
                     return;
                 }
+                if (!getResponse(toClient, fromClient))
+                break;
+
             }
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("Client connection closed");
@@ -167,7 +169,6 @@ public class ClientHandler implements Runnable {
             }
             toClient.writeObject("\n" + response);
         }  else if (splitRequest.equalsIgnoreCase("quit")) {
-            // ArrayList<Socket> clients = new ArrayList<Socket>(Connection.getClients());
             System.out.println("Client at address: " + client.getInetAddress() + ":" + client.getPort() + " closed");
             quitStuff(fromClient, toClient);
             
