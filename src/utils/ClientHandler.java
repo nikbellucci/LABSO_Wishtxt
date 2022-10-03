@@ -150,6 +150,9 @@ public class ClientHandler implements Runnable {
             ReaderWriterSem semaphore = null;
             HashMap < String, String > listOfFiles = fileHandler.getFilesName();
             String response = "";
+            if (listOfFiles.isEmpty()) {
+                response = "Directory is empty";
+            }
             for (String nameFile: listOfFiles.keySet()) {
                 semaphore = getSemaphore(nameFile);
                 response += "name file: " + nameFile + "\nlast modified: " + listOfFiles.get(nameFile) + "\nuser reading: " + semaphore.getReaderCount() + "\nuser writing: " + semaphore.isDbWriting() + "\n\n";
