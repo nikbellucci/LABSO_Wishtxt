@@ -100,7 +100,7 @@ public class FileHandler {
             return data;
 
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             return "File not found";
         }
     }
