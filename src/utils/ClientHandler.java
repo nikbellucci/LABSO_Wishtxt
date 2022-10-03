@@ -129,10 +129,13 @@ public class ClientHandler implements Runnable {
             }
         } else if (splitRequest.equalsIgnoreCase("delete")) {
             if (splitArg != null) {
-                startWriterCritSec();
-                    toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
-                    criticHandle.remove(fileName);
-                endWriterCritSec();
+                ReaderWriterSem semaphore = getSemaphore();
+                semaphore.startWrite();
+                Connection.isWriting(client);
+                toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
+                criticHandle.remove(fileName);
+                semaphore.endWrite();
+                Connection.isIdle(client);
             } else {
                 toClient.writeObject("\n" + "Invalid syntax: delete [fileName]");
             }
