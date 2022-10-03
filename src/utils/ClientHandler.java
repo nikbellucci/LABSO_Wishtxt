@@ -64,13 +64,13 @@ public class ClientHandler implements Runnable {
                         if (message.indexOf(command) != -1) {
                             String[] tmpString = message.split("\\s", 2);
                             splitRequest = tmpString[0];
-                            if(command.equals(splitRequest)){
+                            if (command.equals(splitRequest)) {
                                 System.out.println("Client: " + client.getInetAddress() + ":" + client.getPort() + ", command: " + splitRequest);
-                            } 
+                            }
                             if (tmpString.length > 1) {
                                 splitArg = tmpString[1].split("\\s", 2);
                             }
-                            if(tmpString.length > 1){
+                            if (tmpString.length > 1) {
                                 if (!tmpString[1].contains(".txt")) {
                                     tmpString[1] = tmpString[1] + ".txt";
                                 }
@@ -79,19 +79,19 @@ public class ClientHandler implements Runnable {
                             break;
                         }
                     }
-                    
+
                 } catch (ArrayIndexOutOfBoundsException | EOFException e) {
                     // e.printStackTrace();
-                    
-                } catch (SocketException e){
-                    System.out.println("Client disconected: " + client);
-                    Connection.removeClientConnection(client);
-                    return;
+
                 }
                 if (!getResponse(toClient, fromClient))
-                break;
+                    break;
 
             }
+        } catch (SocketException e) {
+            System.out.println("Client disconected: " + client);
+            Connection.removeClientConnection(client);
+
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("Client connection closed");
             e.printStackTrace();
@@ -108,56 +108,74 @@ public class ClientHandler implements Runnable {
      * @return The method returns a boolean value.
      */
 
-    public void enterCritSec(){
+    public void enterCritSec() {
         semaphore = getSemaphore();
         semaphore.startWrite();
         Connection.isWriting(client);
     }
 
-    public void exitCritSec(){
+    public void exitCritSec() {
         semaphore.endWrite();
         Connection.isIdle(client);
     }
 
 
-    
+
 
     private boolean getResponse(ObjectOutputStream toClient, ObjectInputStream fromClient) throws IOException, ClassNotFoundException {
         FileHandler fileHandler = new FileHandler(path); // Path di ogni sistema operativo
-        
+
         //Following comands require at leats one argument
-        if (splitArg != null) {
-            if (splitRequest.equalsIgnoreCase("create")) {
-                    toClient.writeObject("\n" + fileHandler.newFile(fileName));
+        if (splitRequest.equalsIgnoreCase("create")) {
+            if (splitArg != null) {
+                toClient.writeObject("\n" + fileHandler.newFile(fileName));
+            } else {
+                toClient.writeObject("\n" + "Invalid argument(s)...");
             }
-            else if (splitRequest.equalsIgnoreCase("rename")) {
-                String[] tmp = fileName.split(".txt");         //[test 1].txt[ test 2].txt
-                if(tmp.length == 2){
-                    tmp[0] = tmp[0] + ".txt";                            //[test 1.txt]
-                    tmp[1] = tmp[1].substring(1)+".txt";      //[test 2.txt]
+        } else if (splitRequest.equalsIgnoreCase("rename")) {
+            if (splitArg != null) {
+                String[] tmp = fileName.split(".txt"); //[test 1].txt[ test 2].txt
+                if (tmp.length == 2) {
+                    tmp[0] = tmp[0] + ".txt"; //[test 1.txt]
+                    tmp[1] = tmp[1].substring(1) + ".txt"; //[test 2.txt]
                     enterCritSec();
-                        toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
+                    toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
                     exitCritSec();
-                }else{
+                } else {
                     toClient.writeObject("\n" + "Invalid syntax: rename [oldName].txt [newName].txt");
                     return true;
                 }
-                
-            } else if (splitRequest.equalsIgnoreCase("delete")) {
-                    enterCritSec();
-                        toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
-                        criticHandle.remove(fileName);
-                    exitCritSec();
-            } else if (splitRequest.equalsIgnoreCase("edit")) {
-                    toClient.writeObject("\n" + readFile(semaphore, fileHandler));
-                    editFile(fileHandler, fromClient, toClient);
-                    toClient.writeObject("\n" + "exiting editor...");
-            } else if (splitRequest.equalsIgnoreCase("read")) {
-                    ReaderWriterSem semaphore = getSemaphore();
-                    Connection.isReading(client);
-                    readFile(semaphore, fileHandler, fromClient, toClient);
-                    toClient.writeObject("\n" + "exiting reading mode...");
-                    Connection.isIdle(client);
+            } else {
+                toClient.writeObject("\n" + "Invalid argument(s)...");
+            }
+
+
+        } else if (splitRequest.equalsIgnoreCase("delete")) {
+            if (splitArg != null) {
+                enterCritSec();
+                toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
+                criticHandle.remove(fileName);
+                exitCritSec();
+            } else {
+                toClient.writeObject("\n" + "Invalid argument(s)...");
+            }
+        } else if (splitRequest.equalsIgnoreCase("edit")) {
+            if (splitArg != null) {
+                toClient.writeObject("\n" + readFile(semaphore, fileHandler));
+                editFile(fileHandler, fromClient, toClient);
+                toClient.writeObject("\n" + "exiting editor...");
+            } else {
+                toClient.writeObject("\n" + "Invalid argument(s)...");
+            }
+        } else if (splitRequest.equalsIgnoreCase("read")) {
+            if (splitArg != null) {
+                ReaderWriterSem semaphore = getSemaphore();
+                Connection.isReading(client);
+                readFile(semaphore, fileHandler, fromClient, toClient);
+                toClient.writeObject("\n" + "exiting reading mode...");
+                Connection.isIdle(client);
+            } else {
+                toClient.writeObject("\n" + "Invalid argument(s)...");
             }
         }
         //Following comands don't require any arguments
@@ -170,10 +188,10 @@ public class ClientHandler implements Runnable {
                 response += "name file: " + nameFile + "\nlast modified: " + listOfFiles.get(nameFile) + "\nuser reading: " + semaphore.getReaderCount() + "\nuser writing: " + semaphore.isDbWriting() + "\n\n";
             }
             toClient.writeObject("\n" + response);
-        }  else if (splitRequest.equalsIgnoreCase("quit")) {
+        } else if (splitRequest.equalsIgnoreCase("quit")) {
             System.out.println("Client at address: " + client.getInetAddress() + ":" + client.getPort() + " closed");
             quitStuff(fromClient, toClient);
-            
+
             return false;
         } else toClient.writeObject("\n" + "Invalid command!\nSyntax: [command] [fileName]");
         return true;
@@ -205,21 +223,21 @@ public class ClientHandler implements Runnable {
      * @param toClient the output stream to the client
      */
     private void editFile(FileHandler fileHandler, ObjectInputStream fromClient, ObjectOutputStream toClient) throws IOException, ClassNotFoundException {
-            enterCritSec();
-                while (true) {
-                    String message = (String) fromClient.readObject();
-                    if (message.equalsIgnoreCase(":backspace")) {
-                        fileHandler.backSpace(fileName);
-                        toClient.writeObject("delete last row");
-                    } else if (message.equalsIgnoreCase(":close"))
-                        break;           
-                    else{
-                        fileHandler.writeLine(fileName, message + "\n");
-                        toClient.writeObject("you just wrote a line");
-                    }
-                        
-                }
-            exitCritSec();
+        enterCritSec();
+        while (true) {
+            String message = (String) fromClient.readObject();
+            if (message.equalsIgnoreCase(":backspace")) {
+                fileHandler.backSpace(fileName);
+                toClient.writeObject("delete last row");
+            } else if (message.equalsIgnoreCase(":close"))
+                break;
+            else {
+                fileHandler.writeLine(fileName, message + "\n");
+                toClient.writeObject("you just wrote a line");
+            }
+
+        }
+        exitCritSec();
     }
 
 

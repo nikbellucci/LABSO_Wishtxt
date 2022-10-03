@@ -45,9 +45,7 @@ public class Connection {
      */
     public static void removeElement(Socket clientToRemove) {
         // System.out.println(clients.indexOf(clientToRemove));
-        if (clients.size() > 0) {
-            clients.remove(clients.indexOf(clientToRemove));
-        }
+        clients.remove(clients.indexOf(clientToRemove));
         // System.out.println("ArrayList di Socket = " + Connection.getClients());
     }
 
@@ -123,8 +121,35 @@ public class Connection {
         clientStream.remove(socket);
     }
 
+    public static boolean isInClientHashmap(Socket client) {
+        if (clientHashmap.get(client) != null) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public static boolean isInClientStream(Socket client) {
+        if (clientStream.get(client) != null) {
+            return true;
+        } else {
+            return false;
+        }
+            
+    }
+
+    public static void flushSocket() {
+        for (Socket socket : clients) {
+            if (isInClientHashmap(socket) && isInClientStream(socket)) {
+                System.out.println("esiste");
+            } else {
+                removeElement(socket);
+            }
+        }
+    }
+
     public static void removeClientConnection(Socket socket) {
-        removeElement(socket);
+        // removeElement(socket);
         removeElementFromClientStream(socket);
         removeElementFromMap(socket);
     }

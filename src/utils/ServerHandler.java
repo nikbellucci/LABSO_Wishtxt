@@ -55,15 +55,15 @@ public class ServerHandler implements Runnable {
             if (Connection.getClients().size() > 0) {
                 // System.out.println("size: " + Connection.getClients().size());
                 for (Socket client : Connection.getClients()) {
+                    
+                    System.out.println("size: " + Connection.getClients().size());
                     toClient = Connection.getElementOnClientStream(client);
                     toClient.writeObject("-1");
                     toClient.close();
-                    Connection.removeClientConnection(client);
+                    Connection.removeElementFromMap(client);
+                    Connection.removeElementFromClientStream(client);
                     client.close();
                     System.out.println("Client at address: " + client.getInetAddress() + ":" + client.getPort() + " closed");
-                    if (Connection.getClients().size() < 1) {
-                        break;
-                    }
                 }
             }
             this.listener.close();
