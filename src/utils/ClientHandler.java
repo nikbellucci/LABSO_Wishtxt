@@ -55,7 +55,7 @@ public class ClientHandler implements Runnable {
                 // Checking if the message from the client contains a colon. If it does not, it sends
                 // an error message to the client.
                 splitRequest = "";
-                splitArg = new String[1];
+                splitArg = null;
 
                 // System.out.println(Connection.getClientsMap().get(client));
 
@@ -68,24 +68,20 @@ public class ClientHandler implements Runnable {
                             System.out.println("Client: " + client.getInetAddress() + ":" + client.getPort() + ", command: " + splitRequest);
                             if (tmpString.length > 1) {
                                 splitArg = tmpString[1].split("\\s", 2);
-                                for (int i = 0; i < splitArg.length; i++) {
-                                    if (!splitArg[i].contains(".txt")) {
-                                        splitArg[i] = splitArg[i] + ".txt";
-                                    }
+                            }
+                            if(tmpString.length > 1){
+                                if (!tmpString[1].contains(".txt")) {
+                                    tmpString[1] = tmpString[1] + ".txt";
                                 }
+                                fullArg = tmpString[1];
                             }
-                            if (!tmpString[1].contains(".txt")) {
-                                tmpString[1] = tmpString[1] + ".txt";
-                            }
-                            fullArg = tmpString[1];
-                            System.out.println(Arrays.deepToString(tmpString));
                             break;
                         }
                     }
                 } catch (ArrayIndexOutOfBoundsException | EOFException | SocketException e) {
+                    e.printStackTrace();
                     // System.out.println("Socket closed: " + client);
                     break;
-                    // e.printStackTrace();
                 }
 
                 if (!getResponse(toClient, fromClient))
@@ -117,17 +113,17 @@ public class ClientHandler implements Runnable {
         }
         else if (splitRequest.equalsIgnoreCase("rename")) {
             if (splitArg != null || splitArg.length < 2) {
+                String[] tmp = fullArg.split(".txt");         //[test 1].txt[ test 2].txt
+                tmp[0] = tmp[0] + ".txt";                           //[test 1.txt]
+                tmp[1] = tmp[1].substring(1)+".txt";    //[test 2.txt]
                 
-                if (splitArg[1].contains(" ") || splitArg[0].contains(" ")) {
-                    toClient.writeObject("Invalid argument(s)...]");
-                } else {
-                    ReaderWriterSem semaphore = getSemaphore();
-                    semaphore.startWrite();
-                    Connection.isWriting(client);
-                    toClient.writeObject("\n" + fileHandler.renameFile(splitArg[0], splitArg[1]));
-                    semaphore.endWrite();
-                    Connection.isIdle(client);
-                }
+                ReaderWriterSem semaphore = getSemaphore();
+                semaphore.startWrite();
+                Connection.isWriting(client);
+                toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
+                semaphore.endWrite();
+                Connection.isIdle(client);
+                
                 
             } else {
                 toClient.writeObject("\n" + "Invalid argument(s)...]");
