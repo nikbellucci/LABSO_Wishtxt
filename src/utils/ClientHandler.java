@@ -1,6 +1,7 @@
 package utils;
 
 import java.io.EOFException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -138,8 +139,12 @@ public class ClientHandler implements Runnable {
                 if (tmp.length == 2) {
                     tmp[0] = tmp[0] + ".txt"; // [test 1.txt]
                     tmp[1] = tmp[1].substring(1) + ".txt"; // [test 2.txt]
-                    enterCritSec();
-                    toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
+                    //enterCritSec()
+                    semaphore = getSemaphore(tmp[0]);
+                    semaphore.startWrite();
+
+                        Connection.isWriting(client);
+                            toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
                     exitCritSec();
                 } else {
                     toClient.writeObject("\n" + "Invalid syntax: rename [oldName].txt [newName].txt");
@@ -152,17 +157,25 @@ public class ClientHandler implements Runnable {
         } else if (splitRequest.equalsIgnoreCase("delete")) {
             if (splitArg != null) {
                 enterCritSec();
-                toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
-                criticHandle.remove(fileName);
+                    toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
+                    criticHandle.remove(fileName);
                 exitCritSec();
             } else {
                 toClient.writeObject("\n" + "Invalid argument(s)...");
             }
         } else if (splitRequest.equalsIgnoreCase("edit")) {
             if (splitArg != null) {
-                toClient.writeObject("\n" + readFile(semaphore, fileHandler));
-                editFile(fileHandler, fromClient, toClient);
-                toClient.writeObject("\n" + "exiting editor...");
+                String fileText=null;
+                try{
+                    fileText = readFile(semaphore, fileHandler);
+                }catch(FileNotFoundException e){
+                    toClient.writeObject("\n" + "File not found\n" + "exiting editor...");
+                }
+                if(!(fileText == null)){
+                    toClient.writeObject("\n" + fileText);
+                        editFile(fileHandler, fromClient, toClient);
+                    toClient.writeObject("\n" + "exiting editor...");
+                }
             } else {
                 toClient.writeObject("\n" + "Invalid argument(s)...");
             }
@@ -170,8 +183,12 @@ public class ClientHandler implements Runnable {
             if (splitArg != null) {
                 ReaderWriterSem semaphore = getSemaphore();
                 Connection.isReading(client);
-                readFile(semaphore, fileHandler, fromClient, toClient);
-                toClient.writeObject("\n" + "exiting reading mode...");
+                String res = readFile(semaphore, fileHandler, fromClient, toClient);
+                if(res==null)
+                    toClient.writeObject("\n" + "exiting reading mode...");
+                else
+                    toClient.writeObject("\n" +res + "\nexiting reading mode...");
+
                 Connection.isIdle(client);
             } else {
                 toClient.writeObject("\n" + "Invalid argument(s)...");
@@ -233,19 +250,19 @@ public class ClientHandler implements Runnable {
     private void editFile(FileHandler fileHandler, ObjectInputStream fromClient, ObjectOutputStream toClient)
             throws IOException, ClassNotFoundException {
         enterCritSec();
-        while (true) {
-            String message = (String) fromClient.readObject();
-            if (message.equalsIgnoreCase(":backspace")) {
-                fileHandler.backSpace(fileName);
-                toClient.writeObject("delete last row");
-            } else if (message.equalsIgnoreCase(":close"))
-                break;
-            else {
-                fileHandler.writeLine(fileName, message + "\n");
-                toClient.writeObject("you just wrote a line");
-            }
+            while (true) {
+                String message = (String) fromClient.readObject();
+                if (message.equalsIgnoreCase(":backspace")) {
+                    fileHandler.backSpace(fileName);
+                    toClient.writeObject("delete last row");
+                } else if (message.equalsIgnoreCase(":close"))
+                    break;
+                else {
+                    fileHandler.writeLine(fileName, message + "\n");
+                    toClient.writeObject("you just wrote a line");
+                }
 
-        }
+            }
         exitCritSec();
     }
 
@@ -260,11 +277,12 @@ public class ClientHandler implements Runnable {
      * @param fileHandler a class that handles the file operations
      * @return The response from the fileHandler.readFile() method.
      */
-    private String readFile(ReaderWriterSem semaphore, FileHandler fileHandler) {
+    private String readFile(ReaderWriterSem semaphore, FileHandler fileHandler) throws FileNotFoundException{
         semaphore = getSemaphore();
         semaphore.startRead(); // start of critical section
-        String response = fileHandler.readFile(fileName);
-
+        String response;
+        response = fileHandler.readFile(fileName);
+        
         semaphore.endRead();
         if (response.length() == 0) {
             return "file empty, write...";
@@ -274,17 +292,23 @@ public class ClientHandler implements Runnable {
 
     }
 
-    private void readFile(ReaderWriterSem semaphore, FileHandler fileHandler, ObjectInputStream fromClient,
+    private String readFile(ReaderWriterSem semaphore, FileHandler fileHandler, ObjectInputStream fromClient,
             ObjectOutputStream toClient) throws IOException, ClassNotFoundException {
         semaphore = getSemaphore();
         semaphore.startRead(); // start of critical section
-        String response = fileHandler.readFile(fileName);
+        String response;
+        try{
+            response = fileHandler.readFile(fileName);
+        }catch (FileNotFoundException e) {
+            semaphore.endRead();
+            return "File not found";
+        }
 
         if (response.length() == 0) {
-            toClient.writeObject("file empty");
+            semaphore.endRead();
+            return "file empty";
         } else {
             toClient.writeObject("\n" + response);
-
         }
 
         while (true) {
@@ -295,7 +319,7 @@ public class ClientHandler implements Runnable {
                 toClient.writeObject("to close session use command \":close\"");
         }
         semaphore.endRead();
-
+        return null;
     }
 
     /**

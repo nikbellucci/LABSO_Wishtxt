@@ -88,24 +88,19 @@ public class FileHandler {
      * @return The data that is being returned is the data that is being read from
      *         the file.
      */
-    public String readFile(String fileName) {
-        try {
-            File obj = new File(path + File.separator + fileName);
-            Scanner myReader = new Scanner(obj);
-            // if code passes the scanner initialization w/out exceptions, we know that the
-            // file exists. We are ready to enter into the critical section
+    public String readFile(String fileName) throws FileNotFoundException{
+        
+        File obj = new File(path + File.separator + fileName);
+        Scanner myReader = new Scanner(obj);
+        // if code passes the scanner initialization w/out exceptions, we know that the
+        // file exists. We are ready to enter into the critical section
 
-            String data = "";
-            while (myReader.hasNextLine()) {
-                data = data.concat(myReader.nextLine() + "\n");
-            }
-            myReader.close();
-            return data;
-
-        } catch (FileNotFoundException e) {
-            // e.printStackTrace();
-            return "File not found";
+        String data = "";
+        while (myReader.hasNextLine()) {
+            data = data.concat(myReader.nextLine() + "\n");
         }
+        myReader.close();
+        return data;
     }
 
     /**

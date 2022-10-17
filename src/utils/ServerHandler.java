@@ -58,8 +58,10 @@ public class ServerHandler implements Runnable {
                 // System.out.println("size: " + Connection.getClients().size());
                 for (Socket client : Connection.getClients()) {
                     toClient = Connection.getElementOnClientStream(client);
-                    toClient.writeObject("-1");
-                    toClient.close();
+                    if(toClient != null)
+                    {   toClient.writeObject("-1");
+                        toClient.close();
+                    }
                     Connection.removeElementFromMap(client);
                     Connection.removeElementFromClientStream(client);
                     client.close();
