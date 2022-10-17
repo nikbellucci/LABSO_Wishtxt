@@ -26,8 +26,10 @@ public class ServerHandler implements Runnable {
     }
 
     /**
-     * The function runs a loop that waits for user input. If the user inputs "quit", the program
-     * terminates. If the user inputs "info", the program prints out the current state of the program
+     * The function runs a loop that waits for user input. If the user inputs
+     * "quit", the program
+     * terminates. If the user inputs "info", the program prints out the current
+     * state of the program
      */
     @Override
     public void run() {
@@ -35,16 +37,16 @@ public class ServerHandler implements Runnable {
         while (true) {
             String inputString = scannerStr.nextLine();
             if (inputString.equals("quit")) {
+                // se non ci sono client
                 killer();
                 scannerStr.close();
-                break;  
+                break;
             } else if (inputString.equals("info")) {
                 info();
             } else {
                 System.out.println("Syntax error");
             }
         }
-        
     }
 
     /**
@@ -55,26 +57,28 @@ public class ServerHandler implements Runnable {
             if (Connection.getClients().size() > 0) {
                 // System.out.println("size: " + Connection.getClients().size());
                 for (Socket client : Connection.getClients()) {
-                    
-                    System.out.println("size: " + Connection.getClients().size());
                     toClient = Connection.getElementOnClientStream(client);
                     toClient.writeObject("-1");
                     toClient.close();
                     Connection.removeElementFromMap(client);
                     Connection.removeElementFromClientStream(client);
                     client.close();
-                    System.out.println("Client at address: " + client.getInetAddress() + ":" + client.getPort() + " closed");
+                    System.out.println(
+                            "Client at address: " + client.getInetAddress() + ":" + client.getPort() + " closed");
                 }
             }
             this.listener.close();
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (NullPointerException e2) { // errore qui, entra in deadlock
+            e2.printStackTrace();
         }
-        
+
     }
 
     /**
-     * It counts the number of files in the directory, the number of clients in idle mode, the number
+     * It counts the number of files in the directory, the number of clients in idle
+     * mode, the number
      * of clients in reading mode and the number of clients in writing mode
      */
     public void info() {

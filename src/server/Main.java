@@ -9,8 +9,6 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.HashMap;
 
-
-
 public class Main {
 
     public static void main(String[] args) {
@@ -21,15 +19,16 @@ public class Main {
         String path = System.getProperty("user.dir") + File.separator + args[0];
         File directory = new File(path);
         int port = Integer.parseInt(args[1]);
-        
+
         HashMap<String, ReaderWriterSem> critSecHndl = new HashMap<>();
         try {
             ServerSocket listener = new ServerSocket(port);
-            // File directory = new File(System.getProperty("user.dir") + File.separator + "data");
-            if (! directory.exists()){
+            // File directory = new File(System.getProperty("user.dir") + File.separator +
+            // "data");
+            if (!directory.exists()) {
                 directory.mkdir();
-            // If you require it to make the entire directory path including parents,
-            // use directory.mkdirs(); here instead.
+                // If you require it to make the entire directory path including parents,
+                // use directory.mkdirs(); here instead.
             }
             Thread utilityHandler = new Thread(new ServerHandler(listener, directory));
             utilityHandler.start();
@@ -37,16 +36,16 @@ public class Main {
             while (true) {
                 try {
                     System.out.println("Listening...");
-                    Socket client = listener.accept(); //Connettiti a un client
+                    Socket client = listener.accept(); // Connettiti a un client
                     Connection.addElement(client);
                     System.out.println("Connected");
-                    //Delega la gestione della nuova connessione a un thread ClientHandler dedicato
+                    // Delega la gestione della nuova connessione a un thread ClientHandler dedicato
                     Thread clientHandlerThread = new Thread(new ClientHandler(client, critSecHndl, path));
                     clientHandlerThread.start();
                 } catch (SocketException e) {
                     break;
                 }
-                
+
             }
             System.out.println("Server closed");
         } catch (IOException e) {
