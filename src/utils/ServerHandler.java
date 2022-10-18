@@ -43,11 +43,12 @@ public class ServerHandler implements Runnable {
                 break;
             } else if (inputString.equals("info")) {
                 info();
-            } else {
+            } else{
                 System.out.println("Syntax error");
             }
         }
     }
+
 
     /**
      * It closes all the sockets and the listener

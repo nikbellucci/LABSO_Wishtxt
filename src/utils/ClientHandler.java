@@ -169,7 +169,7 @@ public class ClientHandler implements Runnable {
                 try{
                     fileText = readFile(semaphore, fileHandler);
                 }catch(FileNotFoundException e){
-                    toClient.writeObject("\n" + "File not found\n" + "exiting editor...");
+                    toClient.writeObject("\n" + "File not found\n" + "exiting editor..."); 
                 }
                 if(!(fileText == null)){
                     toClient.writeObject("\n" + fileText);
@@ -187,7 +187,7 @@ public class ClientHandler implements Runnable {
                 if(res==null)
                     toClient.writeObject("\n" + "exiting reading mode...");
                 else
-                    toClient.writeObject("\n" +res + "\nexiting reading mode...");
+                    toClient.writeObject("\n" +res + "\n");
 
                 Connection.isIdle(client);
             } else {

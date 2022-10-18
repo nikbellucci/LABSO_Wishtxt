@@ -53,7 +53,6 @@ public class Main {
             System.out.println("Connection refused");
         } catch (EOFException e) {
             System.out.println("Client closed");
-            // e.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (SocketException e) {
