@@ -9,7 +9,8 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * It's a class that contains a list of all the clients connected to the server and a hashmap of all
+ * It's a class that contains a list of all the clients connected to the server
+ * and a hashmap of all
  * the clients connected to the server
  */
 public class Connection {
@@ -60,7 +61,8 @@ public class Connection {
     }
 
     /**
-     * This function takes a socket as a parameter and adds it to the clientHashmap with a value of 0
+     * This function takes a socket as a parameter and adds it to the clientHashmap
+     * with a value of 0
      * 
      * @param socket The socket that the client is connected to.
      */
@@ -69,7 +71,8 @@ public class Connection {
     }
 
     /**
-     * This function is called when the client is writing a message. It changes the value of the
+     * This function is called when the client is writing a message. It changes the
+     * value of the
      * client's socket in the hashmap to 2
      * 
      * @param socket The socket that is being written to.
@@ -80,7 +83,8 @@ public class Connection {
     }
 
     /**
-     * If the client is reading, then the value of the socket in the hashmap is set to 1
+     * If the client is reading, then the value of the socket in the hashmap is set
+     * to 1
      * 
      * @param socket The socket that is being read from.
      */
@@ -90,7 +94,8 @@ public class Connection {
     }
 
     /**
-     * If the client is idle, then the value of the client in the hashmap is set to 0
+     * If the client is idle, then the value of the client in the hashmap is set to
+     * 0
      * 
      * @param socket The socket that is being checked.
      */
@@ -119,5 +124,38 @@ public class Connection {
 
     public static void removeElementFromClientStream(Socket socket) {
         clientStream.remove(socket);
+    }
+
+    public static boolean isInClientHashmap(Socket client) {
+        if (clientHashmap.get(client) != null) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public static boolean isInClientStream(Socket client) {
+        if (clientStream.get(client) != null) {
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
+    public static void flushSocket() {
+        for (Socket socket : clients) {
+            if (isInClientHashmap(socket) && isInClientStream(socket)) {
+                System.out.println("esiste");
+            } else {
+                removeElement(socket);
+            }
+        }
+    }
+
+    public static void removeClientConnection(Socket socket) {
+        // removeElement(socket);
+        removeElementFromClientStream(socket);
+        removeElementFromMap(socket);
     }
 }

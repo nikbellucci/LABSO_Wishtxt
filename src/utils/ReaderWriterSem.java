@@ -1,13 +1,15 @@
 package utils;
 
 public class ReaderWriterSem {
-    // This class handles critical sections (reader-writer problem) within a single file. An object for each file is needed
+    // This class handles critical sections (reader-writer problem) within a single
+    // file. An object for each file is needed
 
-    private int readerCount=0;
-    private boolean dbReading=false, dbWriting=false;
+    private int readerCount = 0;
+    private boolean dbReading = false, dbWriting = false;
 
     /**
-     * This function returns the number of readers currently reading from the database.
+     * This function returns the number of readers currently reading from the
+     * database.
      * 
      * @return The number of readers currently reading the book.
      */
@@ -34,13 +36,14 @@ public class ReaderWriterSem {
     }
 
     /**
-     * If the database is being written to, wait until it's not being written to, then increment the
+     * If the database is being written to, wait until it's not being written to,
+     * then increment the
      * number of readers and if it's the first reader, set the database to be read
      * 
      * @return The number of readers currently reading the database.
      */
     public int startRead() {
-        synchronized(this) {
+        synchronized (this) {
             while (dbWriting == true) {
                 try {
                     wait();
@@ -55,13 +58,14 @@ public class ReaderWriterSem {
     }
 
     /**
-     * The function decrements the reader count, and if the reader count is 0, it notifies all waiting
+     * The function decrements the reader count, and if the reader count is 0, it
+     * notifies all waiting
      * threads and sets the dbReading flag to false
      * 
      * @return The number of readers currently reading the database.
      */
     public int endRead() {
-        synchronized(this) {
+        synchronized (this) {
             --readerCount;
             if (readerCount == 0) {
                 notifyAll();
@@ -73,11 +77,12 @@ public class ReaderWriterSem {
     }
 
     /**
-     * If the database is being read or written to, wait until it is not being read or written to, 
+     * If the database is being read or written to, wait until it is not being read
+     * or written to,
      * then set the database to be written to
      */
     public void startWrite() {
-        synchronized(this) {
+        synchronized (this) {
             while (dbReading == true || dbWriting == true) {
                 try {
                     wait();
@@ -89,8 +94,10 @@ public class ReaderWriterSem {
     }
 
     /**
-     * If the database is being written to, wait until it's done, then set the database to not being
-     * written to, and notify all threads that are waiting for the database to be done being written
+     * If the database is being written to, wait until it's done, then set the
+     * database to not being
+     * written to, and notify all threads that are waiting for the database to be
+     * done being written
      * to.
      */
     public void endWrite() {
@@ -99,6 +106,5 @@ public class ReaderWriterSem {
             notifyAll();
         }
     }
-
 
 }
