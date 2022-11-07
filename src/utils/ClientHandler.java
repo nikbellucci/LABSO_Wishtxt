@@ -10,7 +10,11 @@ import java.net.SocketException;
 import java.util.HashMap;
 
 /**
- * This class handles the client's connection to the server.
+ * a thread class that is created with every new client connecting to the server
+ * <p>
+ * The class handles the communication with the client, by reciving and sending messages.
+ * The class categori
+ * </p>
  */
 public class ClientHandler implements Runnable {
     private Socket client;
@@ -18,7 +22,11 @@ public class ClientHandler implements Runnable {
     private HashMap<String, ReaderWriterSem> criticHandle = new HashMap<String, ReaderWriterSem>(); // string nomeFile
     private String[] splitArg = null;
     private String splitRequest = "";
-    private String path;
+    private ObjectOutputStream toClient;
+    private ObjectInputStream fromClient;
+    ModesHandler modesHndlr;
+    
+    FileHandler fileHandler; // Path di ogni sistema operativo
     private ReaderWriterSem semaphore;
     private String fileName;
 
@@ -31,13 +39,12 @@ public class ClientHandler implements Runnable {
             "read",
             "quit"
     };
-    // private String routePath =
-    // this.getClass().getClassLoader().getResource(File.separator).getPath();
+    
 
     public ClientHandler(Socket client, HashMap<String, ReaderWriterSem> criticHandle, String path) {
         this.client = client;
         this.criticHandle = criticHandle;
-        this.path = path;
+        fileHandler = new FileHandler(path);
     }
 
     /**
@@ -48,11 +55,11 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
-            ObjectOutputStream toClient = new ObjectOutputStream(client.getOutputStream());
-            ObjectInputStream fromClient = new ObjectInputStream(client.getInputStream());
+            toClient = new ObjectOutputStream(client.getOutputStream());
+            fromClient = new ObjectInputStream(client.getInputStream());
+            modesHndlr = new ModesHandler(fromClient, toClient, fileHandler);
             Connection.initializeClientOnMap(client);
             Connection.addElementOnClientStream(client, toClient);
-
             while (true) {
                 // Checking if the message from the client contains a colon. If it does not, it
                 // sends
@@ -62,30 +69,12 @@ public class ClientHandler implements Runnable {
 
                 try {
                     String message = (String) fromClient.readObject();
-                    for (String command : commands) {
-                        if (message.indexOf(command) != -1) {
-                            String[] tmpString = message.split("\\s", 2);
-                            splitRequest = tmpString[0];
-                            if (command.equals(splitRequest)) {
-                                System.out.println("Client: " + client.getInetAddress() + ":" + client.getPort()
-                                        + ", command: " + splitRequest);
-                            }
-                            if (tmpString.length > 1) {
-                                splitArg = tmpString[1].split("\\s", 2);
-                                if (!tmpString[1].contains(".txt")) {
-                                    tmpString[1] = tmpString[1] + ".txt";
-                                }
-                                fileName = tmpString[1];
-                            }
-                            break;
-                        }
-                    }
-
+                    splitMessage(message);
                 } catch (ArrayIndexOutOfBoundsException | EOFException e) {
                     // e.printStackTrace();
 
                 }
-                if (!getResponse(toClient, fromClient))
+                if (!getResponse())
                     break;
 
             }
@@ -96,6 +85,27 @@ public class ClientHandler implements Runnable {
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("Client connection closed");
             e.printStackTrace();
+        }
+    }
+
+    private void splitMessage(String message) {
+        for (String command : commands) {
+            if (message.indexOf(command) != -1) {
+                String[] tmpString = message.split("\\s", 2);
+                splitRequest = tmpString[0];
+                if (command.equals(splitRequest)) {
+                    System.out.println("Client: " + client.getInetAddress() + ":" + client.getPort()
+                            + ", command: " + splitRequest);
+                }
+                if (tmpString.length > 1) {
+                    splitArg = tmpString[1].split("\\s", 2);
+                    if (!tmpString[1].contains(".txt")) {
+                        tmpString[1] = tmpString[1] + ".txt";
+                    }
+                    fileName = tmpString[1];
+                }
+                break;
+            }
         }
     }
 
@@ -111,116 +121,133 @@ public class ClientHandler implements Runnable {
      * @return The method returns a boolean value.
      */
 
-    public void enterCritSec() {
+    public void startWrite() {
         semaphore = getSemaphore();
         semaphore.startWrite();
         Connection.isWriting(client);
     }
+    
+    public void startWrite(String s) {
+        semaphore = getSemaphore(s);
+        semaphore.startWrite();
+        Connection.isWriting(client);
+    }
 
-    public void exitCritSec() {
+    public void startRead() {
+        semaphore = getSemaphore();
+        semaphore.startRead();
+        Connection.isReading(client);
+    }
+
+    public void endRead() {
+        semaphore.endRead();
+        Connection.isIdle(client);
+    }
+
+    public void endWrite() {
         semaphore.endWrite();
         Connection.isIdle(client);
     }
 
-    private boolean getResponse(ObjectOutputStream toClient, ObjectInputStream fromClient)
-            throws IOException, ClassNotFoundException {
-        FileHandler fileHandler = new FileHandler(path); // Path di ogni sistema operativo
-
+    private boolean getResponse() throws IOException, ClassNotFoundException { 
         // Following comands require at leats one argument
-        if (splitRequest.equalsIgnoreCase("create")) {
-            if (splitArg != null) {
-                toClient.writeObject("\n" + fileHandler.newFile(fileName));
-            } else {
-                toClient.writeObject("\n" + "Invalid argument(s)...");
-            }
-        } else if (splitRequest.equalsIgnoreCase("rename")) {
-            if (splitArg != null) {
-                String[] tmp = fileName.split(".txt"); // [test 1].txt[ test 2].txt
-                if (tmp.length == 2) {
-                    tmp[0] = tmp[0] + ".txt"; // [test 1.txt]
-                    tmp[1] = tmp[1].substring(1) + ".txt"; // [test 2.txt]
-                    //enterCritSec()
-                    semaphore = getSemaphore(tmp[0]);
-                    semaphore.startWrite();
-
-                        Connection.isWriting(client);
-                            toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
-                    exitCritSec();
+        switch(splitRequest.toLowerCase()) {
+            case "create":
+                if (splitArg != null) {
+                    toClient.writeObject("\n" + fileHandler.newFile(fileName));
                 } else {
-                    toClient.writeObject("\n" + "Invalid syntax: rename [oldName].txt [newName].txt");
-                    return true;
+                    toClient.writeObject("\n" + "Invalid argument(s)...");
                 }
-            } else {
-                toClient.writeObject("\n" + "Invalid argument(s)...");
-            }
+                break;
+            case "rename":
+                if (splitArg != null) {
+                    String[] tmp = fileName.split(".txt"); // [test 1].txt[ test 2].txt
+                    if (tmp.length == 2) {
+                        tmp[0] = tmp[0] + ".txt"; // [test 1.txt]
+                        tmp[1] = tmp[1].substring(1) + ".txt"; // [test 2.txt]
+                        startWrite(tmp[0]);
+                            toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
+                        endWrite();
+                    } else {
+                        toClient.writeObject("\n" + "Invalid syntax: rename [oldName].txt [newName].txt");
+                        return true;
+                    }
+                } else {
+                    toClient.writeObject("\n" + "Invalid argument(s)...");
+                }
+                break;
+            case "delete":
+                if (splitArg != null) {
+                    startWrite();
+                        toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
+                        criticHandle.remove(fileName);
+                    endWrite();
+                } else {
+                    toClient.writeObject("\n" + "Invalid argument(s)...");
+                }
+                break;
+            case "edit":
+                if (splitArg != null) {
+                    String fileText=null;
+                    try{
+                        fileText = readFile();
+                    }catch(FileNotFoundException e){
+                        toClient.writeObject("\n" + "File not found\n" + "exiting editor...");
+                    }
+                    if(!(fileText == null)){
+                        toClient.writeObject("\n" + fileText);
+                        startWrite();;
+                            modesHndlr.editFile(fileName);
+                        endWrite();
+                        toClient.writeObject("\n" + "exiting editor...");
+                    }
+                } else {
+                    toClient.writeObject("\n" + "Invalid argument(s)...");
+                }
+                break;
+            case "read":
+                if (splitArg != null) {
+                    startRead();
+                        String res = modesHndlr.readFile(fileName);
+                    endRead();
+                    if(res==null)
+                        toClient.writeObject("\n" + "exiting reading mode...");
+                    else
+                        toClient.writeObject("\n" +res + "\nexiting reading mode...");
 
-        } else if (splitRequest.equalsIgnoreCase("delete")) {
-            if (splitArg != null) {
-                enterCritSec();
-                    toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
-                    criticHandle.remove(fileName);
-                exitCritSec();
-            } else {
-                toClient.writeObject("\n" + "Invalid argument(s)...");
-            }
-        } else if (splitRequest.equalsIgnoreCase("edit")) {
-            if (splitArg != null) {
-                String fileText=null;
-                try{
-                    fileText = readFile(semaphore, fileHandler);
-                }catch(FileNotFoundException e){
-                    toClient.writeObject("\n" + "File not found\n" + "exiting editor..."); 
+                } else {
+                    toClient.writeObject("\n" + "Invalid argument(s)...");
                 }
-                if(!(fileText == null)){
-                    toClient.writeObject("\n" + fileText);
-                        editFile(fileHandler, fromClient, toClient);
-                    toClient.writeObject("\n" + "exiting editor...");
+                break;
+            case "list":
+                ReaderWriterSem semaphore = null;
+                HashMap<String, String> listOfFiles = fileHandler.getFilesName();
+                String response = "";
+                if (listOfFiles.isEmpty()) {
+                    response = "Empty directory";
+                } else {
+                    for (String nameFile : listOfFiles.keySet()) {
+                        semaphore = getSemaphore(nameFile);
+                        response += "name file: " + nameFile + "\nlast modified: " + listOfFiles.get(nameFile)
+                                + "\nuser reading: " + semaphore.getReaderCount() + "\nuser writing: "
+                                + semaphore.isDbWriting() + "\n\n";
+                    }
                 }
-            } else {
-                toClient.writeObject("\n" + "Invalid argument(s)...");
-            }
-        } else if (splitRequest.equalsIgnoreCase("read")) {
-            if (splitArg != null) {
-                ReaderWriterSem semaphore = getSemaphore();
-                Connection.isReading(client);
-                String res = readFile(semaphore, fileHandler, fromClient, toClient);
-                if(res==null)
-                    toClient.writeObject("\n" + "exiting reading mode...");
-                else
-                    toClient.writeObject("\n" +res + "\n");
+                toClient.writeObject("\n" + response);
+                break;
+            case "quit":
+                System.out.println("Client at address: " + client.getInetAddress() + ":" + client.getPort() + " closed");
+                quitStuff();
 
-                Connection.isIdle(client);
-            } else {
-                toClient.writeObject("\n" + "Invalid argument(s)...");
-            }
+                return false;
+            default:
+                toClient.writeObject("\n" + "Invalid command!\nSyntax: [command] [fileName]");
         }
-        // Following comands don't require any arguments
-        else if (splitRequest.equalsIgnoreCase("list")) {
-            ReaderWriterSem semaphore = null;
-            HashMap<String, String> listOfFiles = fileHandler.getFilesName();
-            String response = "";
-            if (listOfFiles.isEmpty()) {
-                response = "Empty directory";
-            } else {
-                for (String nameFile : listOfFiles.keySet()) {
-                    semaphore = getSemaphore(nameFile);
-                    response += "name file: " + nameFile + "\nlast modified: " + listOfFiles.get(nameFile)
-                            + "\nuser reading: " + semaphore.getReaderCount() + "\nuser writing: "
-                            + semaphore.isDbWriting() + "\n\n";
-                }
-            }
-            toClient.writeObject("\n" + response);
-        } else if (splitRequest.equalsIgnoreCase("quit")) {
-            System.out.println("Client at address: " + client.getInetAddress() + ":" + client.getPort() + " closed");
-            quitStuff(fromClient, toClient);
 
-            return false;
-        } else
-            toClient.writeObject("\n" + "Invalid command!\nSyntax: [command] [fileName]");
         return true;
     }
 
-    private void quitStuff(ObjectInputStream fromClient, ObjectOutputStream toClient) throws IOException {
+    private void quitStuff() throws IOException {
         fromClient.close();
         toClient.close();
         Connection.removeElement(client);
@@ -229,42 +256,6 @@ public class ClientHandler implements Runnable {
         client.close();
     }
 
-    // internal loop for the edit mode
-    /**
-     * It reads a message from the client,
-     * if the message is "backspace:" it calls the backspace function of the
-     * fileHandler,
-     * if the message is "exit:" it breaks the loop,
-     * otherwise it calls the writeLine function of the fileHandler
-     *
-     * This method is an internal loop of client-server communication, hence all
-     * those passed variables.
-     *
-     * @param semaphore   a ReaderWriterSem object
-     * @param fileHandler is a class that handles the file, it has a method to write
-     *                    a line, a method
-     *                    to delete a line and a method to read a line.
-     * @param fromClient  ObjectInputStream
-     * @param toClient    the output stream to the client
-     */
-    private void editFile(FileHandler fileHandler, ObjectInputStream fromClient, ObjectOutputStream toClient)
-            throws IOException, ClassNotFoundException {
-        enterCritSec();
-            while (true) {
-                String message = (String) fromClient.readObject();
-                if (message.equalsIgnoreCase(":backspace")) {
-                    fileHandler.backSpace(fileName);
-                    toClient.writeObject("delete last row");
-                } else if (message.equalsIgnoreCase(":close"))
-                    break;
-                else {
-                    fileHandler.writeLine(fileName, message + "\n");
-                    toClient.writeObject("you just wrote a line");
-                }
-
-            }
-        exitCritSec();
-    }
 
     // little method to enter and exit the crit. section and read from file. I added
     // it as getResponse() uses the same code twice
@@ -277,49 +268,16 @@ public class ClientHandler implements Runnable {
      * @param fileHandler a class that handles the file operations
      * @return The response from the fileHandler.readFile() method.
      */
-    private String readFile(ReaderWriterSem semaphore, FileHandler fileHandler) throws FileNotFoundException{
-        semaphore = getSemaphore();
-        semaphore.startRead(); // start of critical section
+    private String readFile() throws FileNotFoundException{
+        startRead();
         String response;
         response = fileHandler.readFile(fileName);
-        
-        semaphore.endRead();
+        endRead();
         if (response.length() == 0) {
             return "file empty, write...";
         } else {
             return response;
         }
-
-    }
-
-    private String readFile(ReaderWriterSem semaphore, FileHandler fileHandler, ObjectInputStream fromClient,
-            ObjectOutputStream toClient) throws IOException, ClassNotFoundException {
-        semaphore = getSemaphore();
-        semaphore.startRead(); // start of critical section
-        String response;
-        try{
-            response = fileHandler.readFile(fileName);
-        }catch (FileNotFoundException e) {
-            semaphore.endRead();
-            return "File not found";
-        }
-
-        if (response.length() == 0) {
-            semaphore.endRead();
-            return "file empty";
-        } else {
-            toClient.writeObject("\n" + response);
-        }
-
-        while (true) {
-            String message = (String) fromClient.readObject();
-            if (message.equalsIgnoreCase(":close"))
-                break;
-            else
-                toClient.writeObject("to close session use command \":close\"");
-        }
-        semaphore.endRead();
-        return null;
     }
 
     /**
