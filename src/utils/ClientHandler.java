@@ -197,7 +197,7 @@ public class ClientHandler implements Runnable {
                     if(!(fileText == null)){
                         toClient.writeObject("\n" + fileText);
                         startWrite();;
-                            modesHndlr.editFile(fileName);
+                            modesHndlr.editFile(fileName, fileText);
                         endWrite();
                         toClient.writeObject("\n" + "exiting editor...");
                     }
