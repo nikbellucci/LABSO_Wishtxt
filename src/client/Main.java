@@ -26,26 +26,42 @@ public class Main {
             ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
             Scanner scan = new Scanner(System.in);
+            boolean activeClose = true;
+
 
             // A while loop that reads the input from the user and sends it to the server.
             // se esce dal cliclo while con un ctrl+c non manda un messaggio al server
             while (scan.hasNextLine()) {
 
-                String msg = scan.nextLine();
-                toServer.writeObject(msg);
-                String message = (String) fromServer.readObject();
+                String messageClient = scan.nextLine();
+                toServer.writeObject(messageClient);
+                String messageServer = (String) fromServer.readObject();
 
-                if (!(msg.equals("quit") || message.equals("-1"))) {
-                    System.out.println(message);
-                } else {
-                    if (message.equals("-1"))
-                        System.out.println("Server closed");
-                    scan.close();
-                    fromServer.close();
-                    toServer.close();
-                    socket.close();
-                    break;
+                if (messageClient.contains("read") || messageClient.contains("edit")) {
+                    activeClose = false;
+                } else if (messageClient.equals(":close")) {
+                    activeClose = true;
                 }
+
+                if (activeClose) {
+                    // System.out.print("activeClose: " + activeClose);
+                    if (!(messageClient.equals("quit") || messageServer.equals("-1"))) {
+                        System.out.println(messageServer);
+                    } else {
+                        if (messageServer.equals("-1")) {
+                            System.out.println("Server closed");
+                        }
+                        scan.close();
+                        fromServer.close();
+                        toServer.close();
+                        socket.close();
+                        break;
+                    }
+                } else {
+                    // System.out.print("activeClose: " + activeClose);
+                    System.out.println(messageServer);
+                }
+                
             }
 
             System.out.println("Client disconnected");

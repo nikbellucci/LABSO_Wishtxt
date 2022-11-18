@@ -166,7 +166,7 @@ public class ClientHandler implements Runnable {
                         tmp[0] = tmp[0] + ".txt"; // [test 1.txt]
                         tmp[1] = tmp[1].substring(1) + ".txt"; // [test 2.txt]
                         startWrite(tmp[0]);
-                            toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
+                        toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
                         endWrite();
                     } else {
                         toClient.writeObject("\n" + "Invalid syntax: rename [oldName].txt [newName].txt");
@@ -179,8 +179,8 @@ public class ClientHandler implements Runnable {
             case "delete":
                 if (splitArg != null) {
                     startWrite();
-                        toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
-                        criticHandle.remove(fileName);
+                    toClient.writeObject("\n" + fileHandler.deleteFile(fileName));
+                    criticHandle.remove(fileName);
                     endWrite();
                 } else {
                     toClient.writeObject("\n" + "Invalid argument(s)...");
@@ -196,8 +196,8 @@ public class ClientHandler implements Runnable {
                     }
                     if(!(fileText == null)){
                         toClient.writeObject("\n" + fileText);
-                        startWrite();;
-                            modesHndlr.editFile(fileName, fileText);
+                        startWrite();
+                        modesHndlr.editFile(fileName);
                         endWrite();
                         toClient.writeObject("\n" + "exiting editor...");
                     }
@@ -208,7 +208,7 @@ public class ClientHandler implements Runnable {
             case "read":
                 if (splitArg != null) {
                     startRead();
-                        String res = modesHndlr.readFile(fileName);
+                    String res = modesHndlr.readFile(fileName);
                     endRead();
                     if(res==null)
                         toClient.writeObject("\n" + "exiting reading mode...");
