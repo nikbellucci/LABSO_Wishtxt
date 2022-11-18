@@ -34,8 +34,7 @@ public class ModesHandler{
      * @param fromClient  ObjectInputStream
      * @param toClient    the output stream to the client
      */
-    public void editFile(String fileName, String fileText) throws IOException, ClassNotFoundException {
-        toClient.writeObject("\n" + fileText);
+    public void editFile(String fileName) throws IOException, ClassNotFoundException {
         while (true) {
             String message = (String) fromClient.readObject();
             if (message.equalsIgnoreCase(":backspace")) {
