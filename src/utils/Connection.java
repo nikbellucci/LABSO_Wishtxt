@@ -24,7 +24,6 @@ public class Connection {
      * @return The ArrayList of clients.
      */
     public static ArrayList<Socket> getClients() {
-        // System.out.println(clients);
         return clients;
     }
 
@@ -34,9 +33,7 @@ public class Connection {
      * @param elementToAdd the Socket to add to the ArrayList
      */
     public static void addElement(Socket elementToAdd) {
-        // System.out.println(elementToAdd);
         clients.add(elementToAdd);
-        // System.out.println("ArrayList di Socket = " + Connection.getClients());
     }
 
     /**
@@ -45,9 +42,7 @@ public class Connection {
      * @param clientToRemove the socket to remove from the ArrayList
      */
     public static void removeElement(Socket clientToRemove) {
-        // System.out.println(clients.indexOf(clientToRemove));
         clients.remove(clients.indexOf(clientToRemove));
-        // System.out.println("ArrayList di Socket = " + Connection.getClients());
     }
 
     /**
@@ -56,7 +51,6 @@ public class Connection {
      * @return A HashMap of Socket and Integer.
      */
     public static ConcurrentHashMap<Socket, Integer> getClientsMap() {
-        // System.out.println(clientHashmap);
         return clientHashmap;
     }
 
@@ -79,7 +73,6 @@ public class Connection {
      */
     public static void isWriting(Socket socket) {
         clientHashmap.replace(socket, 2);
-        // System.out.println(clientHashmap.get(socket));
     }
 
     /**
@@ -90,7 +83,6 @@ public class Connection {
      */
     public static void isReading(Socket socket) {
         clientHashmap.replace(socket, 1);
-        // System.out.println(clientHashmap.get(socket));
     }
 
     /**
@@ -101,7 +93,6 @@ public class Connection {
      */
     public static void isIdle(Socket socket) {
         clientHashmap.replace(socket, 0);
-        // System.out.println(clientHashmap.get(socket));
     }
 
     /**
@@ -111,21 +102,39 @@ public class Connection {
      */
     public static void removeElementFromMap(Socket clientToRemove) {
         clientHashmap.remove(clientToRemove);
-        // System.out.println("Hashmap clients connected: " + clientHashmap);
     }
 
+    
+    /** 
+     * @param socket
+     * @return ObjectOutputStream
+     */
     public static ObjectOutputStream getElementOnClientStream(Socket socket) {
         return clientStream.get(socket);
     }
 
+    
+    /** 
+     * @param socket
+     * @param toClient
+     */
     public static void addElementOnClientStream(Socket socket, ObjectOutputStream toClient) {
         clientStream.put(socket, toClient);
     }
 
+    
+    /** 
+     * @param socket
+     */
     public static void removeElementFromClientStream(Socket socket) {
         clientStream.remove(socket);
     }
 
+    
+    /** 
+     * @param client
+     * @return boolean
+     */
     public static boolean isInClientHashmap(Socket client) {
         if (clientHashmap.get(client) != null) {
             return true;
@@ -134,6 +143,11 @@ public class Connection {
         }
     }
 
+    
+    /** 
+     * @param client
+     * @return boolean
+     */
     public static boolean isInClientStream(Socket client) {
         if (clientStream.get(client) != null) {
             return true;
@@ -153,8 +167,11 @@ public class Connection {
         }
     }
 
+    
+    /** 
+     * @param socket
+     */
     public static void removeClientConnection(Socket socket) {
-        // removeElement(socket);
         removeElementFromClientStream(socket);
         removeElementFromMap(socket);
     }

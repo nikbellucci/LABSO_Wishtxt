@@ -16,7 +16,6 @@ public class ModesHandler{
         this.fileHandler = fileHandler;
     }
 
-    // internal loop for the edit mode
     /**
      * It reads a message from the client,
      * if the message is "backspace:" it calls the backspace function of the
@@ -50,7 +49,16 @@ public class ModesHandler{
         }
     }
 
-
+    
+    /** 
+     * 
+     * This method checks if the file exists and puts the client into read mode
+     * 
+     * @param fileName
+     * @return String
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     public String readFile(String fileName) throws IOException, ClassNotFoundException {
         String response;
         try{

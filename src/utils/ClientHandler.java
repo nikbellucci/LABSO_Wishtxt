@@ -18,15 +18,15 @@ import java.util.HashMap;
  */
 public class ClientHandler implements Runnable {
     private Socket client;
-    // This hashmap links a semaphore with each used file by the clients
-    private HashMap<String, ReaderWriterSem> criticHandle = new HashMap<String, ReaderWriterSem>(); // string nomeFile
+    // The hashmap criticHandle will handle the various file semaphores.
+    private HashMap<String, ReaderWriterSem> criticHandle = new HashMap<String, ReaderWriterSem>();
     private String[] splitArg = null;
     private String splitRequest = "";
     private ObjectOutputStream toClient;
     private ObjectInputStream fromClient;
     ModesHandler modesHndlr;
     
-    FileHandler fileHandler; // Path di ogni sistema operativo
+    FileHandler fileHandler;
     private ReaderWriterSem semaphore;
     private String fileName;
 
@@ -61,9 +61,9 @@ public class ClientHandler implements Runnable {
             Connection.initializeClientOnMap(client);
             Connection.addElementOnClientStream(client, toClient);
             while (true) {
-                // Checking if the message from the client contains a colon. If it does not, it
-                // sends
-                // an error message to the client.
+                /*  Checking if the message from the client contains a colon. 
+                * If it does not, it sends an error message to the client.
+                */ 
                 splitRequest = "";
                 splitArg = null;
 
@@ -72,7 +72,6 @@ public class ClientHandler implements Runnable {
                     splitMessage(message);
                 } catch (ArrayIndexOutOfBoundsException | EOFException e) {
                     // e.printStackTrace();
-
                 }
                 if (!getResponse())
                     break;
@@ -88,6 +87,13 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    
+    /** 
+     * 
+     * This method takes care of parsing the command sent by the client, processing its meaning.
+     * 
+     * @param message
+     */
     private void splitMessage(String message) {
         for (String command : commands) {
             if (message.indexOf(command) != -1) {
@@ -127,6 +133,13 @@ public class ClientHandler implements Runnable {
         Connection.isWriting(client);
     }
     
+    /*
+     * These methods handle semaphores and file state
+     */
+    
+    /** 
+     * @param s
+     */
     public void startWrite(String s) {
         semaphore = getSemaphore(s);
         semaphore.startWrite();
@@ -149,6 +162,15 @@ public class ClientHandler implements Runnable {
         Connection.isIdle(client);
     }
 
+    
+    /** 
+     * 
+     * This method checks and execute client commands.
+     * 
+     * @return boolean
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     private boolean getResponse() throws IOException, ClassNotFoundException { 
         // Following comands require at leats one argument
         switch(splitRequest.toLowerCase()) {
@@ -161,10 +183,10 @@ public class ClientHandler implements Runnable {
                 break;
             case "rename":
                 if (splitArg != null) {
-                    String[] tmp = fileName.split(".txt"); // [test 1].txt[ test 2].txt
+                    String[] tmp = fileName.split(".txt");
                     if (tmp.length == 2) {
-                        tmp[0] = tmp[0] + ".txt"; // [test 1.txt]
-                        tmp[1] = tmp[1].substring(1) + ".txt"; // [test 2.txt]
+                        tmp[0] = tmp[0] + ".txt";
+                        tmp[1] = tmp[1].substring(1) + ".txt";
                         startWrite(tmp[0]);
                         toClient.writeObject("\n" + fileHandler.renameFile(tmp[0], tmp[1]));
                         endWrite();
@@ -247,6 +269,10 @@ public class ClientHandler implements Runnable {
         return true;
     }
 
+    
+    /** 
+     * @throws IOException
+     */
     private void quitStuff() throws IOException {
         fromClient.close();
         toClient.close();
@@ -256,9 +282,6 @@ public class ClientHandler implements Runnable {
         client.close();
     }
 
-
-    // little method to enter and exit the crit. section and read from file. I added
-    // it as getResponse() uses the same code twice
     /**
      * The function takes a semaphore and a file handler as parameters. It starts
      * the read operation,
@@ -297,6 +320,11 @@ public class ClientHandler implements Runnable {
         return fileSemaphore;
     }
 
+    
+    /** 
+     * @param nameFile
+     * @return ReaderWriterSem
+     */
     private synchronized ReaderWriterSem getSemaphore(String nameFile) {
         ReaderWriterSem fileSemaphore = criticHandle.get(nameFile); // checks if semaphoreHandler for file exists
         if (fileSemaphore == null) {

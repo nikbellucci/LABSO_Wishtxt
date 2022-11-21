@@ -7,6 +7,10 @@ import java.net.SocketException;
 import java.util.Scanner;
 
 public class Main {
+    
+    /** 
+     * @param args[]
+     */
     public static void main(String args[]) {
 
         // Prendi in input l'indirizzo e la porta a cui connettersi
@@ -18,7 +22,7 @@ public class Main {
         int port = Integer.parseInt(args[1]);
 
         try {
-            // Connettiti a host:port
+            // Connection to host:port.
             Socket socket = new Socket(host, port);
             System.out.println("Commands: create, rename, delete, list, edit, read, quit");
             System.out.println("Connected\n");
@@ -29,8 +33,7 @@ public class Main {
             boolean activeClose = true;
 
 
-            // A while loop that reads the input from the user and sends it to the server.
-            // se esce dal cliclo while con un ctrl+c non manda un messaggio al server
+            // A loop that scans the input and processes it.
             while (scan.hasNextLine()) {
 
                 String messageClient = scan.nextLine();
@@ -44,7 +47,6 @@ public class Main {
                 }
 
                 if (activeClose) {
-                    // System.out.print("activeClose: " + activeClose);
                     if (!(messageClient.equals("quit") || messageServer.equals("-1"))) {
                         System.out.println(messageServer);
                     } else {
@@ -58,7 +60,6 @@ public class Main {
                         break;
                     }
                 } else {
-                    // System.out.print("activeClose: " + activeClose);
                     System.out.println(messageServer);
                 }
                 
